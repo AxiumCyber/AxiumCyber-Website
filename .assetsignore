@@ -1,4 +1,9 @@
 /.git/
+/.wrangler/
+/node_modules/
+/.dev.vars*
 /README.md
+/.gitignore
+/.assetsignore
 /wrangler.jsonc
 /worker.mjs

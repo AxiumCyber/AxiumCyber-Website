@@ -131,6 +131,23 @@ async function saveTicket(env, ticket) {
     await env.AXIUM_KV.put(`ticket:${ticket.id}`, JSON.stringify(ticket));
 }
 
+async function writeAuditEvent(env, account, action, details = {}) {
+    const createdAt = new Date().toISOString();
+    const key = `audit:${createdAt}:${crypto.randomUUID()}`;
+    try {
+        await env.AXIUM_KV.put(key, JSON.stringify({
+            id: key.slice('audit:'.length),
+            action,
+            actor: account.username,
+            role: account.role,
+            details,
+            createdAt
+        }));
+    } catch (error) {
+        console.error('Could not persist the audit event:', error);
+    }
+}
+
 async function requestHandler(request, env) {
     if (!env.AXIUM_KV) return json({ error: 'Cloudflare KV binding AXIUM_KV is not configured.' }, 503);
 
@@ -157,6 +174,7 @@ async function requestHandler(request, env) {
         const account = { username: 'admin', role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
         await env.AXIUM_KV.put('user:admin', JSON.stringify(account));
         await env.AXIUM_KV.put('system:initialized', 'true');
+        await writeAuditEvent(env, account, 'system.bootstrapped');
         const token = await createSession(env, account.username);
         return json({ authenticated: true, user: account.username, role: account.role, lockdown: false }, 201, { 'set-cookie': cookieHeader(token) });
     }
@@ -207,6 +225,7 @@ async function requestHandler(request, env) {
         const password = await hashPassword(body.password);
         const user = { username, role: body.role, ...password, createdAt: new Date().toISOString() };
         await env.AXIUM_KV.put(`user:${username}`, JSON.stringify(user));
+        await writeAuditEvent(env, account, 'user.created', { username, role: user.role });
         return json({ user: { username, role: user.role, createdAt: user.createdAt } }, 201);
     }
 
@@ -218,6 +237,7 @@ async function requestHandler(request, env) {
         if (!target) return json({ error: 'Account not found.' }, 404);
         if (username === account.username || target.role === 'SUPER ADMIN') return json({ error: 'The active or protected Super Admin account cannot be deleted.' }, 400);
         await env.AXIUM_KV.delete(`user:${username}`);
+        await writeAuditEvent(env, account, 'user.deleted', { username, role: target.role });
         return json({ ok: true });
     }
 
@@ -249,6 +269,7 @@ async function requestHandler(request, env) {
             notes: [{ type: 'created', message: 'Ticket created.', author: account.username, role: account.role, createdAt: new Date().toISOString() }]
         };
         await saveTicket(env, ticket);
+        await writeAuditEvent(env, account, 'ticket.created', { ticketId: ticket.id, priority: ticket.priority, category: ticket.category });
         return json({ ticket }, 201);
     }
 
@@ -275,6 +296,10 @@ async function requestHandler(request, env) {
             return json({ error: 'No supported ticket update was provided.' }, 400);
         }
         await saveTicket(env, ticket);
+        await writeAuditEvent(env, account, body.status === undefined ? 'ticket.note_added' : 'ticket.status_changed', {
+            ticketId: ticket.id,
+            ...(body.status === undefined ? {} : { status: body.status })
+        });
         return json({ ticket });
     }
     if (ticketMatch && method === 'DELETE') {
@@ -282,6 +307,7 @@ async function requestHandler(request, env) {
         const key = `ticket:${ticketMatch[1]}`;
         if (!await env.AXIUM_KV.get(key)) return json({ error: 'Ticket not found.' }, 404);
         await env.AXIUM_KV.delete(key);
+        await writeAuditEvent(env, account, 'ticket.deleted', { ticketId: ticketMatch[1] });
         return json({ ok: true });
     }
 
@@ -291,6 +317,7 @@ async function requestHandler(request, env) {
         try { body = await readBody(request); } catch { return json({ error: 'Invalid lockdown request.' }, 400); }
         if (typeof body.locked !== 'boolean') return json({ error: 'A boolean lockdown value is required.' }, 400);
         await env.AXIUM_KV.put('system:lockdown', String(body.locked));
+        await writeAuditEvent(env, account, 'system.lockdown_changed', { locked: body.locked });
         return json({ locked: body.locked });
     }
 
@@ -299,13 +326,26 @@ async function requestHandler(request, env) {
         const tickets = await listTickets(env);
         const resolved = tickets.filter(ticket => ticket.status === 'RESOLVED');
         await Promise.all(resolved.map(ticket => env.AXIUM_KV.delete(`ticket:${ticket.id}`)));
+        await writeAuditEvent(env, account, 'tickets.resolved_purged', { count: resolved.length });
         return json({ deleted: resolved.length });
     }
 
     if (path === '/api/admin/audit' && method === 'GET') {
         if (!requireRole(account, ['SUPER ADMIN', 'Admin'])) return json({ error: 'Admin role required.' }, 403);
-        const [tickets, users, lockdown] = await Promise.all([listTickets(env), listUsers(env), env.AXIUM_KV.get('system:lockdown')]);
-        return json({ timestamp: new Date().toISOString(), exportedBy: account.username, role: account.role, ticketsCount: tickets.length, userCount: users.length, lockdown: lockdown === 'true', status: 'OK' });
+        const [tickets, users, lockdown, events] = await Promise.all([
+            listTickets(env),
+            listUsers(env),
+            env.AXIUM_KV.get('system:lockdown'),
+            listRecords(env.AXIUM_KV, 'audit:')
+        ]);
+        events.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+        return json({
+            generatedAt: new Date().toISOString(),
+            exportedBy: account.username,
+            role: account.role,
+            summary: { ticketsCount: tickets.length, userCount: users.length, lockdown: lockdown === 'true' },
+            events
+        });
     }
 
     return json({ error: 'API endpoint not found.' }, 404);
