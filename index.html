@@ -98,7 +98,7 @@
                 <button onclick="switchTab('public')" id="nav-public" class="text-cyan-400 hover:text-white transition-colors flex items-center space-x-2 py-2 border-b-2 border-cyan-400">
                     <i class="fa-solid fa-shield-halved"></i><span>Public HQ</span>
                 </button>
-                <button onclick="switchTab('portal')" id="nav-portal" class="text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent">
+                <button onclick="openPortalTab()" id="nav-portal" class="text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent">
                     <i class="fa-solid fa-terminal"></i><span>Staff & Admin Portal</span>
                 </button>
             </nav>
@@ -111,7 +111,7 @@
                     <span id="session-role-badge" class="px-2 py-0.5 rounded text-[10px] font-orbitron bg-purple-500/20 text-purple-300 border border-purple-500/30">ADMIN</span>
                     <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 ml-2" title="Terminate Session"><i class="fa-solid fa-power-off"></i></button>
                 </div>
-                <button onclick="switchTab('portal')" class="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold hover:bg-cyan-500/30 hover:shadow-neon-cyan transition-all">
+                <button onclick="openPortalTab()" class="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold hover:bg-cyan-500/30 hover:shadow-neon-cyan transition-all">
                     <i class="fa-solid fa-lock"></i><span>SECURE LOGIN</span>
                 </button>
                 <button onclick="toggleMobileMenu()" class="md:hidden text-cyan-400 p-2"><i class="fa-solid fa-bars text-xl"></i></button>
@@ -120,7 +120,7 @@
         <!-- Mobile Menu -->
         <div id="mobile-menu" class="hidden md:hidden glass-panel border-t border-cyan-500/20 px-4 py-4 space-y-3 font-orbitron text-sm">
             <button onclick="switchTab('public'); toggleMobileMenu();" class="block w-full text-left py-2 text-cyan-400"><i class="fa-solid fa-shield-halved mr-2"></i>Public HQ</button>
-            <button onclick="switchTab('portal'); toggleMobileMenu();" class="block w-full text-left py-2 text-slate-300"><i class="fa-solid fa-terminal mr-2"></i>Staff & Admin Portal</button>
+            <button onclick="openPortalTab(); toggleMobileMenu();" class="block w-full text-left py-2 text-slate-300"><i class="fa-solid fa-terminal mr-2"></i>Staff & Admin Portal</button>
         </div>
     </header>
 
@@ -149,7 +149,7 @@
                         <button onclick="scrollToSection('services')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-sm tracking-wider hover:shadow-neon-cyan transition-all transform hover:-translate-y-0.5">
                             EXPLORE DEFENSES <i class="fa-solid fa-arrow-down ml-2"></i>
                         </button>
-                        <button onclick="switchTab('portal')" class="w-full sm:w-auto px-8 py-4 rounded-xl glass-panel border border-cyan-500/40 text-cyan-300 font-orbitron font-bold text-sm tracking-wider hover:bg-cyan-500/10 transition-all">
+                        <button onclick="openPortalTab()" class="w-full sm:w-auto px-8 py-4 rounded-xl glass-panel border border-cyan-500/40 text-cyan-300 font-orbitron font-bold text-sm tracking-wider hover:bg-cyan-500/10 transition-all">
                             STAFF / CLIENT PORTAL <i class="fa-solid fa-terminal ml-2"></i>
                         </button>
                     </div>
@@ -295,7 +295,11 @@
                             <i class="fa-solid fa-fingerprint"></i>
                         </div>
                         <h2 class="font-orbitron font-bold text-2xl text-white">SECURE ACCESS GATEWAY</h2>
-                        <p class="text-xs text-slate-400 font-mono">Authenticate with credentials and role token</p>
+                        <p class="text-xs text-slate-400 font-mono">Sign in with an authorized staff account</p>
+                    </div>
+
+                    <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200 font-mono">
+                        DEMO PORTAL ONLY: accounts are stored in this browser. Do not use real or sensitive credentials.
                     </div>
 
                     <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
@@ -312,18 +316,21 @@
                         </button>
                     </form>
 
-                    <!-- Quick Preset Buttons -->
-                    <div class="border-t border-slate-800 pt-4 space-y-2">
-                        <span class="block text-[10px] font-mono text-slate-400 text-center uppercase tracking-widest">Quick Demo Credentials</span>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button type="button" onclick="fillCreds('admin', 'anubis2026')" class="p-2 rounded bg-slate-900 border border-purple-500/30 text-[11px] font-mono text-purple-300 hover:bg-purple-500/10 text-left">
-                                <span class="font-bold block">SUPER ADMIN</span>admin / anubis2026
-                            </button>
-                            <button type="button" onclick="fillCreds('analyst', 'cyber2026')" class="p-2 rounded bg-slate-900 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 hover:bg-cyan-500/10 text-left">
-                                <span class="font-bold block">ANALYST / TECH</span>analyst / cyber2026
-                            </button>
+                    <form id="bootstrap-form" onsubmit="handleBootstrap(event)" class="hidden border-t border-slate-800 pt-4 space-y-3">
+                        <div>
+                            <h3 class="font-orbitron font-bold text-sm text-amber-200">INITIALIZE SUPER ADMIN</h3>
+                            <p class="text-[11px] text-slate-400 font-mono mt-1">Create the first account using the one-time Cloudflare setup key.</p>
                         </div>
-                    </div>
+                        <div class="text-xs font-mono text-cyan-300">USERNAME: admin</div>
+                        <label class="block text-xs font-orbitron text-slate-300">ONE-TIME SETUP KEY
+                            <input id="bootstrap-key" type="password" required autocomplete="off" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                        </label>
+                        <label class="block text-xs font-orbitron text-slate-300">NEW ADMIN PASSWORD
+                            <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                        </label>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-amber-300 text-slate-950 font-orbitron font-bold text-sm uppercase tracking-wider hover:bg-amber-200 transition-all">CREATE SUPER ADMIN</button>
+                    </form>
+                    <div id="login-message" role="status" aria-live="polite" class="hidden text-xs text-rose-300 font-mono"></div>
                 </div>
             </div>
 
@@ -338,21 +345,12 @@
                         </div>
                         <div>
                             <h2 class="font-orbitron font-bold text-xl text-white">AXIUM COMMAND & CONTROL</h2>
-                            <p class="text-xs text-slate-400 font-mono">Secured Terminal Session Active • RBAC Enforced</p>
+                            <p class="text-xs text-slate-400 font-mono">Browser-local demo session • Role-bound dashboard</p>
                         </div>
                     </div>
-                    <!-- Role Switcher & Status -->
-                    <div class="flex items-center space-x-3">
-                        <div class="text-right">
-                            <span class="block text-[10px] font-mono text-slate-400">ACTIVE ROLE</span>
-                            <select id="active-role-selector" onchange="changeActiveRole(this.value)" class="bg-slate-900 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs rounded px-2 py-1 outline-none">
-                                <option value="SUPER ADMIN">SUPER ADMIN</option>
-                                <option value="Admin">Admin</option>
-                                <option value="Tech Support">Tech Support</option>
-                                <option value="Moderator">Moderator</option>
-                                <option value="Staff">Staff</option>
-                            </select>
-                        </div>
+                    <div class="text-right">
+                        <span class="block text-[10px] font-mono text-slate-400">ACCOUNT ROLE</span>
+                        <span id="active-role-label" class="inline-block bg-slate-900 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs rounded px-2 py-1">STAFF</span>
                     </div>
                 </div>
 
@@ -380,6 +378,40 @@
                         </button>
                     </div>
                 </div>
+
+                <section id="user-management-panel" class="hidden glass-panel rounded-2xl p-6 space-y-5 border border-purple-500/30">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+                        <div>
+                            <h3 class="font-orbitron font-bold text-lg text-white"><i class="fa-solid fa-users-gear text-purple-300 mr-2"></i>Staff Identity Registry</h3>
+                            <p class="text-xs text-slate-400 font-mono mt-1">Create accounts and assign their dashboard role</p>
+                        </div>
+                        <span id="user-count" class="text-[10px] font-mono text-purple-200">0 ACCOUNTS</span>
+                    </div>
+                    <form id="add-user-form" onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                        <label class="text-[10px] font-orbitron text-slate-300">USERNAME
+                            <input id="new-user-name" required minlength="3" maxlength="24" pattern="[A-Za-z0-9._-]+" autocomplete="off" placeholder="e.g. j.smith" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
+                        </label>
+                        <label class="text-[10px] font-orbitron text-slate-300">TEMPORARY PASSWORD
+                            <input id="new-user-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
+                        </label>
+                        <label class="text-[10px] font-orbitron text-slate-300">ROLE
+                            <select id="new-user-role" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
+                                <option value="Admin">Admin</option>
+                                <option value="Tech Support">Tech Support</option>
+                                <option value="Moderator">Moderator</option>
+                                <option value="Staff" selected>Staff</option>
+                            </select>
+                        </label>
+                        <button type="submit" class="py-2.5 rounded-lg bg-purple-400 text-slate-950 font-orbitron font-bold text-xs hover:bg-purple-300 transition-colors"><i class="fa-solid fa-user-plus mr-1"></i>ADD ACCOUNT</button>
+                    </form>
+                    <div id="user-management-message" role="status" aria-live="polite" class="hidden text-xs font-mono"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead><tr class="border-b border-slate-800 text-[10px] font-orbitron text-slate-400"><th class="py-2 px-3">USERNAME</th><th class="py-2 px-3">ROLE</th><th class="py-2 px-3 text-right">ACTION</th></tr></thead>
+                            <tbody id="users-table-body" class="font-mono text-xs divide-y divide-slate-800/60"></tbody>
+                        </table>
+                    </div>
+                </section>
 
                 <!-- Live Security Telemetry & Quick Metrics -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -527,7 +559,7 @@
             <form id="new-ticket-form" onsubmit="handleCreateTicket(event)" class="space-y-4 font-mono text-xs">
                 <div>
                     <label class="block text-slate-300 font-orbitron mb-1">TICKET SUBJECT / TITLE</label>
-                    <input type="text" id="ticket-title" required placeholder="e.g., Unauthorized Login Attempt on Vault Node #4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none">
+                    <input type="text" id="ticket-title" required maxlength="120" placeholder="e.g., Unauthorized Login Attempt on Vault Node #4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -551,7 +583,7 @@
                 </div>
                 <div>
                     <label class="block text-slate-300 font-orbitron mb-1">DESCRIPTION & DETAILS</label>
-                    <textarea id="ticket-desc" rows="4" required placeholder="Describe the incident or support request in detail..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none"></textarea>
+                    <textarea id="ticket-desc" rows="4" required maxlength="2000" placeholder="Describe the incident or support request in detail..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none"></textarea>
                 </div>
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeNewTicketModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-orbitron hover:bg-slate-700">CANCEL</button>
@@ -600,7 +632,7 @@
                         <!-- Notes populated -->
                     </div>
                     <div class="flex space-x-2 pt-2">
-                        <input type="text" id="new-note-input" placeholder="Add internal staff note..." class="flex-grow bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 outline-none focus:border-cyan-400">
+                        <input type="text" id="new-note-input" maxlength="500" placeholder="Add internal staff note..." class="flex-grow bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 outline-none focus:border-cyan-400">
                         <button onclick="addTicketNote()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-orbitron font-bold rounded-lg">ADD NOTE</button>
                     </div>
                 </div>
@@ -677,44 +709,28 @@
         let isLockedDown = false;
         let currentFilter = 'ALL';
         let activeTicketId = null;
+        const validRoles = ['SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff'];
+        let ticketsCache = [];
 
-        // Default initial tickets if localStorage is empty
-        const defaultTickets = [
-            {
-                id: 'AX-301',
-                title: 'Suspicious outbound DNS tunneling detected on Node-04',
-                category: 'Network Security',
-                priority: 'Critical',
-                status: 'OPEN',
-                author: 'analyst',
-                role: 'Tech Support',
-                date: '2026-10-19 14:00',
-                notes: ['[02:05] Initial triage completed by analyst.', '[02:12] IP isolated from primary subnet.']
-            },
-            {
-                id: 'AX-302',
-                title: 'Quarterly compliance audit and asset valuation verification',
-                category: 'Executive Advisory',
-                priority: 'Medium',
-                status: 'IN_PROGRESS',
-                author: 'admin',
-                role: 'Admin',
-                date: '2026-10-18 09:30',
-                notes: ['[Oct 18] Audit logs requested from cloud gateway.']
-            }
-        ];
-
-        function getStoredTickets() {
-            const data = localStorage.getItem('axium_tickets');
-            if (!data) {
-                localStorage.setItem('axium_tickets', JSON.stringify(defaultTickets));
-                return defaultTickets;
-            }
-            return JSON.parse(data);
+        async function apiRequest(path, options = {}) {
+            const response = await fetch(path, {
+                credentials: 'same-origin',
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+            return result;
         }
 
-        function saveTickets(tickets) {
-            localStorage.setItem('axium_tickets', JSON.stringify(tickets));
+        function getStoredTickets() {
+            return ticketsCache;
+        }
+
+        async function loadTickets() {
+            const result = await apiRequest('/api/tickets');
+            ticketsCache = result.tickets;
+            renderTickets();
         }
 
         // --- Tab Navigation ---
@@ -738,6 +754,12 @@
                 navPub.className = "text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent";
                 checkSessionState();
             }
+        }
+
+        function openPortalTab() {
+            const portalUrl = new URL(window.location.href);
+            portalUrl.hash = 'portal';
+            window.open(portalUrl.toString(), '_blank', 'noopener');
         }
 
         function toggleMobileMenu() {
@@ -779,101 +801,197 @@
         }
 
         // --- Authentication & RBAC ---
-        function fillCreds(user, pass) {
-            document.getElementById('login-user').value = user;
-            document.getElementById('login-pass').value = pass;
-        }
-
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
-            const user = document.getElementById('login-user').value.trim().toLowerCase();
-            const pass = document.getElementById('login-pass').value;
-
-            // Simple validation simulation based on requested presets
-            if ((user === 'admin' && pass === 'anubis2026') || (user === 'superadmin')) {
-                currentUser = user;
-                currentRole = 'SUPER ADMIN';
-            } else if (user === 'analyst' && pass === 'cyber2026') {
-                currentUser = user;
-                currentRole = 'Tech Support';
-            } else {
-                currentUser = user;
-                currentRole = 'Staff';
+            const message = document.getElementById('login-message');
+            try {
+                await apiRequest('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('login-user').value.trim(),
+                        password: document.getElementById('login-pass').value
+                    })
+                });
+                message.classList.add('hidden');
+                await checkSessionState();
+            } catch (error) {
+                message.textContent = error.message;
+                message.classList.remove('hidden');
             }
-
-            localStorage.setItem('axium_session', JSON.stringify({ user: currentUser, role: currentRole }));
-            checkSessionState();
         }
 
-        function handleLogout() {
-            localStorage.removeItem('axium_session');
+        async function handleBootstrap(e) {
+            e.preventDefault();
+            const message = document.getElementById('login-message');
+            try {
+                await apiRequest('/api/bootstrap', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        setupSecret: document.getElementById('bootstrap-key').value,
+                        password: document.getElementById('bootstrap-password').value
+                    })
+                });
+                document.getElementById('bootstrap-form').reset();
+                message.classList.add('hidden');
+                await checkSessionState();
+            } catch (error) {
+                message.textContent = error.message;
+                message.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await apiRequest('/api/logout', { method: 'POST' });
+            } catch (error) {
+                console.warn('Could not end the server session cleanly.', error);
+            }
             currentUser = null;
             currentRole = 'Staff';
-            checkSessionState();
+            ticketsCache = [];
+            await checkSessionState();
         }
 
-        function checkSessionState() {
-            const saved = localStorage.getItem('axium_session');
+        async function checkSessionState() {
             const authContainer = document.getElementById('portal-auth-container');
             const workspace = document.getElementById('portal-workspace');
             const statusIndicator = document.getElementById('auth-status-indicator');
+            const bootstrapForm = document.getElementById('bootstrap-form');
+            const loginForm = document.getElementById('login-form');
+            const message = document.getElementById('login-message');
+            try {
+                const session = await apiRequest('/api/session');
+                isLockedDown = session.lockdown === true;
+                if (!session.authenticated) {
+                    currentUser = null;
+                    currentRole = 'Staff';
+                    authContainer.classList.remove('hidden');
+                    workspace.classList.add('hidden');
+                    statusIndicator.classList.add('hidden');
+                    statusIndicator.classList.remove('flex');
+                    bootstrapForm.classList.toggle('hidden', !session.setupRequired);
+                    loginForm.classList.toggle('hidden', session.setupRequired);
+                    message.classList.add('hidden');
+                    return;
+                }
 
-            if (saved) {
-                const session = JSON.parse(saved);
                 currentUser = session.user;
                 currentRole = session.role;
-
                 authContainer.classList.add('hidden');
                 workspace.classList.remove('hidden');
                 statusIndicator.classList.remove('hidden');
                 statusIndicator.classList.add('flex');
-
                 document.getElementById('session-user-badge').innerText = currentUser;
-                const roleBadge = document.getElementById('session-role-badge');
-                roleBadge.innerText = currentRole;
-                document.getElementById('active-role-selector').value = currentRole;
+                document.getElementById('session-role-badge').innerText = currentRole;
+                document.getElementById('active-role-label').innerText = currentRole.toUpperCase();
 
-                // Configure Super Admin Panel visibility
-                const superPanel = document.getElementById('super-admin-panel');
-                if (currentRole === 'SUPER ADMIN') {
-                    superPanel.classList.remove('hidden');
-                } else {
-                    superPanel.classList.add('hidden');
-                }
-
-                renderTickets();
-                updateMetrics();
-            } else {
+                const isSuperAdmin = currentRole === 'SUPER ADMIN';
+                document.getElementById('super-admin-panel').classList.toggle('hidden', !isSuperAdmin);
+                document.getElementById('user-management-panel').classList.toggle('hidden', !isSuperAdmin);
+                if (isSuperAdmin) await renderUsers();
+                await loadTickets();
+            } catch (error) {
+                currentUser = null;
+                currentRole = 'Staff';
                 authContainer.classList.remove('hidden');
                 workspace.classList.add('hidden');
                 statusIndicator.classList.add('hidden');
                 statusIndicator.classList.remove('flex');
+                bootstrapForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                message.textContent = `Portal connection failed: ${error.message}`;
+                message.classList.remove('hidden');
             }
         }
 
-        function changeActiveRole(newRole) {
-            currentRole = newRole;
-            const session = JSON.parse(localStorage.getItem('axium_session') || '{}');
-            session.role = currentRole;
-            localStorage.setItem('axium_session', JSON.stringify(session));
-            document.getElementById('session-role-badge').innerText = currentRole;
+        async function renderUsers() {
+            if (currentRole !== 'SUPER ADMIN') return;
+            const tbody = document.getElementById('users-table-body');
+            const { users } = await apiRequest('/api/users');
+            tbody.replaceChildren();
+            document.getElementById('user-count').innerText = `${users.length} ACCOUNT${users.length === 1 ? '' : 'S'}`;
 
-            const superPanel = document.getElementById('super-admin-panel');
-            if (currentRole === 'SUPER ADMIN') {
-                superPanel.classList.remove('hidden');
-            } else {
-                superPanel.classList.add('hidden');
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                const usernameCell = document.createElement('td');
+                usernameCell.className = 'py-3 px-3 text-slate-200';
+                usernameCell.textContent = user.username;
+                const roleCell = document.createElement('td');
+                roleCell.className = 'py-3 px-3 text-cyan-300';
+                roleCell.textContent = user.role;
+                const actionCell = document.createElement('td');
+                actionCell.className = 'py-3 px-3 text-right';
+
+                if (user.role === 'SUPER ADMIN') {
+                    const protectedLabel = document.createElement('span');
+                    protectedLabel.className = 'text-[10px] text-amber-300';
+                    protectedLabel.textContent = 'PROTECTED';
+                    actionCell.append(protectedLabel);
+                } else {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'px-2.5 py-1 rounded border border-rose-500/30 text-rose-300 hover:bg-rose-500/10';
+                    deleteButton.textContent = 'DELETE';
+                    deleteButton.addEventListener('click', () => deleteUser(user.username));
+                    actionCell.append(deleteButton);
+                }
+
+                row.append(usernameCell, roleCell, actionCell);
+                tbody.append(row);
+            });
+        }
+
+        async function handleAddUser(e) {
+            e.preventDefault();
+            if (currentRole !== 'SUPER ADMIN') return;
+
+            const username = document.getElementById('new-user-name').value.trim().toLowerCase();
+            const password = document.getElementById('new-user-password').value;
+            const role = document.getElementById('new-user-role').value;
+            const message = document.getElementById('user-management-message');
+            try {
+                await apiRequest('/api/users', { method: 'POST', body: JSON.stringify({ username, password, role }) });
+                document.getElementById('add-user-form').reset();
+                message.textContent = `Account ${username} created with the ${role} role.`;
+                message.className = 'text-xs font-mono text-emerald-300';
+                await renderUsers();
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = 'text-xs font-mono text-rose-300';
             }
-            renderTickets();
+        }
+
+        async function deleteUser(username) {
+            if (currentRole !== 'SUPER ADMIN' || username === currentUser || username === 'admin') return;
+            if (!confirm(`Delete the ${username} account?`)) return;
+            const message = document.getElementById('user-management-message');
+            try {
+                await apiRequest(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
+                message.textContent = `Account ${username} deleted.`;
+                message.className = 'text-xs font-mono text-emerald-300';
+                await renderUsers();
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = 'text-xs font-mono text-rose-300';
+            }
         }
 
         // --- Super Admin Controls ---
-        function toggleSystemLockdown() {
+        async function toggleSystemLockdown() {
             if (currentRole !== 'SUPER ADMIN') {
                 alert('ACCESS DENIED: Requires SUPER ADMIN privilege.');
                 return;
             }
-            isLockedDown = !isLockedDown;
+            try {
+                const result = await apiRequest('/api/admin/lockdown', {
+                    method: 'POST',
+                    body: JSON.stringify({ locked: !isLockedDown })
+                });
+                isLockedDown = result.locked;
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
             const btn = document.getElementById('lockdown-btn');
             if (isLockedDown) {
                 btn.className = "p-3 rounded-xl bg-rose-950/80 border border-rose-500 text-left";
@@ -886,40 +1004,38 @@
             }
         }
 
-        function purgeResolvedTickets() {
+        async function purgeResolvedTickets() {
             if (currentRole !== 'SUPER ADMIN') {
                 alert('ACCESS DENIED: Requires SUPER ADMIN privilege.');
                 return;
             }
             if (confirm('Are you sure you want to purge all resolved tickets from memory?')) {
-                let tickets = getStoredTickets();
-                tickets = tickets.filter(t => t.status !== 'RESOLVED');
-                saveTickets(tickets);
-                renderTickets();
-                updateMetrics();
-                alert('Resolved ticket history successfully purged.');
+                try {
+                    const result = await apiRequest('/api/admin/purge-resolved', { method: 'POST', body: '{}' });
+                    await loadTickets();
+                    alert(`${result.deleted} resolved ticket(s) purged.`);
+                } catch (error) {
+                    alert(error.message);
+                }
             }
         }
 
-        function exportAuditLogs() {
+        async function exportAuditLogs() {
             if (currentRole !== 'SUPER ADMIN' && currentRole !== 'Admin') {
                 alert('ACCESS DENIED: Insufficient clearance level.');
                 return;
             }
-            const logs = {
-                timestamp: new Date().toISOString(),
-                exportedBy: currentUser,
-                role: currentRole,
-                systemIntegrity: '100%',
-                ticketsCount: getStoredTickets().length,
-                status: 'SECURE'
-            };
-            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `axium_audit_log_${Date.now()}.json`;
-            a.click();
+            try {
+                const logs = await apiRequest('/api/admin/audit');
+                const downloadUrl = URL.createObjectURL(new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' }));
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `axium_audit_log_${Date.now()}.json`;
+                link.click();
+                URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                alert(error.message);
+            }
         }
 
         // --- Security Tools ---
@@ -964,18 +1080,26 @@
 
         function renderTickets() {
             const tbody = document.getElementById('tickets-table-body');
-            const search = document.getElementById('ticket-search').value.toLowerCase();
+            const search = document.getElementById('ticket-search').value.trim().toLowerCase();
             const tickets = getStoredTickets();
 
-            tbody.innerHTML = '';
+            tbody.replaceChildren();
             const filtered = tickets.filter(t => {
-                const matchesSearch = t.title.toLowerCase().includes(search) || t.id.toLowerCase().includes(search);
+                const searchFields = [t.id, t.title, t.desc, t.category, t.author, t.role].filter(Boolean);
+                const matchesSearch = searchFields.some(value => value.toLowerCase().includes(search));
                 const matchesFilter = currentFilter === 'ALL' || t.status === currentFilter;
                 return matchesSearch && matchesFilter;
             });
+            updateMetrics();
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No support tickets found matching criteria.</td></tr>`;
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.className = 'py-6 text-center text-slate-500';
+                cell.textContent = 'No support tickets found matching criteria.';
+                row.append(cell);
+                tbody.append(row);
                 return;
             }
 
@@ -988,25 +1112,46 @@
                 if (t.priority === 'Critical') priorityColor = 'text-rose-400 font-bold';
                 if (t.priority === 'High') priorityColor = 'text-amber-400';
 
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-900/60 transition-colors">
-                        <td class="py-3 px-4 font-bold text-cyan-400">${t.id}</td>
-                        <td class="py-3 px-4 text-slate-200">
-                            <span class="block">${t.title}</span>
-                            <span class="text-[10px] text-slate-500">${t.category}</span>
-                        </td>
-                        <td class="py-3 px-4 text-slate-300">${t.author} <span class="text-[10px] text-slate-500">(${t.role})</span></td>
-                        <td class="py-3 px-4 ${priorityColor}">${t.priority}</td>
-                        <td class="py-3 px-4">
-                            <span class="px-2 py-0.5 rounded border text-[10px] ${statusColor}">${t.status}</span>
-                        </td>
-                        <td class="py-3 px-4 text-right">
-                            <button onclick="openTicketDetail('${t.id}')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-orbitron text-[10px]">VIEW</button>
-                        </td>
-                    </tr>
-                `;
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-900/60 transition-colors';
+                const addCell = (text, className) => {
+                    const cell = document.createElement('td');
+                    cell.className = className;
+                    cell.textContent = text;
+                    row.append(cell);
+                    return cell;
+                };
+                addCell(t.id, 'py-3 px-4 font-bold text-cyan-400');
+                const subjectCell = document.createElement('td');
+                subjectCell.className = 'py-3 px-4 text-slate-200';
+                const title = document.createElement('span');
+                title.className = 'block';
+                title.textContent = t.title;
+                const category = document.createElement('span');
+                category.className = 'text-[10px] text-slate-500';
+                category.textContent = t.category || 'Uncategorized';
+                subjectCell.append(title, category);
+                row.append(subjectCell);
+                addCell(`${t.author || 'Unknown'} (${t.role || 'Staff'})`, 'py-3 px-4 text-slate-300');
+                addCell(t.priority || 'Medium', `py-3 px-4 ${priorityColor}`);
+                const statusCell = document.createElement('td');
+                statusCell.className = 'py-3 px-4';
+                const status = document.createElement('span');
+                status.className = `px-2 py-0.5 rounded border text-[10px] ${statusColor}`;
+                status.textContent = t.status || 'OPEN';
+                statusCell.append(status);
+                row.append(statusCell);
+                const actionCell = document.createElement('td');
+                actionCell.className = 'py-3 px-4 text-right';
+                const viewButton = document.createElement('button');
+                viewButton.type = 'button';
+                viewButton.className = 'px-3 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-orbitron text-[10px]';
+                viewButton.textContent = 'VIEW';
+                viewButton.addEventListener('click', () => openTicketDetail(t.id));
+                actionCell.append(viewButton);
+                row.append(actionCell);
+                tbody.append(row);
             });
-            updateMetrics();
         }
 
         function updateMetrics() {
@@ -1032,33 +1177,28 @@
             document.getElementById('modal-new-ticket').classList.remove('flex');
         }
 
-        function handleCreateTicket(e) {
+        async function handleCreateTicket(e) {
             e.preventDefault();
-            const title = document.getElementById('ticket-title').value;
+            const title = document.getElementById('ticket-title').value.trim();
             const priority = document.getElementById('ticket-priority').value;
             const category = document.getElementById('ticket-category').value;
-            const desc = document.getElementById('ticket-desc').value;
+            const desc = document.getElementById('ticket-desc').value.trim();
+            if (!title || !desc) {
+                alert('Enter a ticket title and description before submitting.');
+                return;
+            }
 
-            const tickets = getStoredTickets();
-            const newId = 'AX-' + Math.floor(100 + Math.random() * 900);
-
-            const newTicket = {
-                id: newId,
-                title,
-                category,
-                priority,
-                status: 'OPEN',
-                author: currentUser || 'staff_member',
-                role: currentRole,
-                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                notes: [`[${new Date().toLocaleTimeString()}] Ticket created by ${currentUser} (${currentRole}).`]
-            };
-
-            tickets.unshift(newTicket);
-            saveTickets(tickets);
-            closeNewTicketModal();
-            document.getElementById('new-ticket-form').reset();
-            renderTickets();
+            try {
+                await apiRequest('/api/tickets', {
+                    method: 'POST',
+                    body: JSON.stringify({ title, desc, category, priority })
+                });
+                closeNewTicketModal();
+                document.getElementById('new-ticket-form').reset();
+                await loadTickets();
+            } catch (error) {
+                alert(error.message);
+            }
         }
 
         function openTicketDetail(id) {
@@ -1075,13 +1215,22 @@
             document.getElementById('detail-desc').innerText = t.desc || 'No detailed description provided.';
 
             const notesContainer = document.getElementById('detail-notes');
-            notesContainer.innerHTML = '';
+            notesContainer.replaceChildren();
             if (t.notes && t.notes.length > 0) {
                 t.notes.forEach(n => {
-                    notesContainer.innerHTML += `<div class="text-slate-300 border-l-2 border-cyan-500 pl-2 py-0.5">${n}</div>`;
+                    const note = document.createElement('div');
+                    note.className = 'text-slate-300 border-l-2 border-cyan-500 pl-2 py-0.5';
+                    const noteText = typeof n === 'string'
+                        ? n
+                        : `[${new Date(n.createdAt).toLocaleTimeString()}] ${n.author} (${n.role}): ${n.message}`;
+                    note.textContent = noteText;
+                    notesContainer.append(note);
                 });
             } else {
-                notesContainer.innerHTML = `<div class="text-slate-500">No internal notes logged.</div>`;
+                const emptyState = document.createElement('div');
+                emptyState.className = 'text-slate-500';
+                emptyState.textContent = 'No internal notes logged.';
+                notesContainer.append(emptyState);
             }
 
             document.getElementById('modal-ticket-detail').classList.remove('hidden');
@@ -1094,55 +1243,62 @@
             activeTicketId = null;
         }
 
-        function addTicketNote() {
+        async function addTicketNote() {
             const input = document.getElementById('new-note-input');
             const noteText = input.value.trim();
             if (!noteText || !activeTicketId) return;
 
-            const tickets = getStoredTickets();
-            const t = tickets.find(x => x.id === activeTicketId);
-            if (t) {
-                if (!t.notes) t.notes = [];
-                t.notes.push(`[${new Date().toLocaleTimeString()}] ${currentUser} (${currentRole}): ${noteText}`);
-                saveTickets(tickets);
+            try {
+                await apiRequest(`/api/tickets/${encodeURIComponent(activeTicketId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ note: noteText })
+                });
                 input.value = '';
+                await loadTickets();
                 openTicketDetail(activeTicketId);
-                renderTickets();
+            } catch (error) {
+                alert(error.message);
             }
         }
 
-        function updateTicketStatus(newStatus) {
-            if (!activeTicketId) return;
-            const tickets = getStoredTickets();
-            const t = tickets.find(x => x.id === activeTicketId);
-            if (t) {
-                t.status = newStatus;
-                if (!t.notes) t.notes = [];
-                t.notes.push(`[${new Date().toLocaleTimeString()}] Status changed to ${newStatus} by ${currentUser}.`);
-                saveTickets(tickets);
+        async function updateTicketStatus(newStatus) {
+            if (!activeTicketId || !['IN_PROGRESS', 'RESOLVED'].includes(newStatus)) return;
+            try {
+                await apiRequest(`/api/tickets/${encodeURIComponent(activeTicketId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: newStatus })
+                });
+                await loadTickets();
                 openTicketDetail(activeTicketId);
-                renderTickets();
+            } catch (error) {
+                alert(error.message);
             }
         }
 
-        function deleteCurrentTicket() {
+        async function deleteCurrentTicket() {
             if (currentRole !== 'SUPER ADMIN' && currentRole !== 'Admin') {
                 alert('ACCESS DENIED: Deleting tickets requires Admin or Super Admin role.');
                 return;
             }
             if (!activeTicketId) return;
             if (confirm(`Are you sure you want to delete ticket ${activeTicketId}?`)) {
-                let tickets = getStoredTickets();
-                tickets = tickets.filter(x => x.id !== activeTicketId);
-                saveTickets(tickets);
-                closeTicketDetailModal();
-                renderTickets();
+                try {
+                    await apiRequest(`/api/tickets/${encodeURIComponent(activeTicketId)}`, { method: 'DELETE' });
+                    closeTicketDetailModal();
+                    await loadTickets();
+                } catch (error) {
+                    alert(error.message);
+                }
             }
         }
 
         // Initialize session check on load
         window.addEventListener('DOMContentLoaded', () => {
-            checkSessionState();
+            if (window.location.hash === '#portal') {
+                switchTab('portal');
+            } else {
+                checkSessionState();
+            }
             calculateRisk();
         });
     </script>
