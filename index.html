@@ -371,7 +371,7 @@
                         </div>
                         <span class="px-2.5 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-[10px] font-mono text-amber-300 uppercase">RESTRICTED LEVEL 5</span>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <button onclick="toggleAuthenticationMode()" id="auth-mode-btn" class="p-3 rounded-xl bg-slate-900 border border-cyan-500/40 text-left hover:border-cyan-300 transition-all">
                             <span id="auth-mode-title" class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-right-to-bracket mr-2 text-cyan-300"></i>Enable SSO</span>
                             <span id="auth-mode-description" class="text-[11px] text-slate-400 font-mono">Switch sign-in to Cloudflare Access</span>
@@ -388,7 +388,12 @@
                             <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-file-shield mr-2 text-purple-400"></i>Export Audit Trail</span>
                             <span class="text-[11px] text-slate-400 font-mono">Download account and ticket events</span>
                         </button>
+                        <button onclick="setupMessagingIntegrations()" class="p-3 rounded-xl bg-slate-900 border border-sky-500/40 text-left hover:border-sky-300 transition-all">
+                            <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-comments mr-2 text-sky-300"></i>Connect Team Messaging</span>
+                            <span class="text-[11px] text-slate-400 font-mono">Register bot commands and webhook</span>
+                        </button>
                     </div>
+                    <div id="messaging-setup-status" role="status" aria-live="polite" class="hidden text-xs font-mono"></div>
                 </div>
 
                 <section id="user-management-panel" class="hidden glass-panel rounded-2xl p-6 space-y-5 border border-purple-500/30">
@@ -1039,6 +1044,24 @@
             }
         }
 
+        async function setupMessagingIntegrations() {
+            if (currentRole !== 'SUPER ADMIN') return;
+            const status = document.getElementById('messaging-setup-status');
+            status.textContent = 'Registering messaging integrations...';
+            status.className = 'text-xs font-mono text-slate-300';
+            try {
+                const { configured } = await apiRequest('/api/admin/messaging/setup', { method: 'POST', body: '{}' });
+                const active = Object.entries(configured).filter(([, enabled]) => enabled).map(([name]) => name);
+                status.textContent = active.length
+                    ? `Connected: ${active.join(' and ')}.`
+                    : 'No integrations configured. Add bot credentials and channel IDs to the Worker settings first.';
+                status.className = `text-xs font-mono ${active.length ? 'text-emerald-300' : 'text-amber-300'}`;
+            } catch (error) {
+                status.textContent = error.message;
+                status.className = 'text-xs font-mono text-rose-300';
+            }
+        }
+
         async function toggleAuthenticationMode() {
             if (currentRole !== 'SUPER ADMIN') return;
             const nextMode = currentAuthMode === 'local' ? 'sso' : 'local';
@@ -1269,13 +1292,20 @@
             }
 
             try {
-                await apiRequest('/api/tickets', {
+                const result = await apiRequest('/api/tickets', {
                     method: 'POST',
                     body: JSON.stringify({ title, desc, category, priority })
                 });
                 closeNewTicketModal();
                 document.getElementById('new-ticket-form').reset();
                 await loadTickets();
+                const messaging = result.ticket.messaging || {};
+                const missingPlatforms = ['discord', 'telegram'].filter(platform => !messaging[platform]);
+                if (messaging.errors?.length) {
+                    alert(`Ticket ${result.ticket.id} was saved, but messaging setup needs attention: ${messaging.errors.join(' | ')}`);
+                } else if (missingPlatforms.length) {
+                    alert(`Ticket ${result.ticket.id} was saved. Configure ${missingPlatforms.join(' and ')} in Worker settings and run Connect Team Messaging to provision a channel/topic.`);
+                }
             } catch (error) {
                 alert(error.message);
             }

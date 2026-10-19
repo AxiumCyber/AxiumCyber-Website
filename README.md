@@ -79,8 +79,39 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Text variable | `ACCESS_TEAM_DOMAIN` | Optional until SSO is activated; then use your team domain, e.g. `your-team.cloudflareaccess.com` |
 | Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
 | Secret | `AXIUM_BOOTSTRAP_SECRET` | Generate a long random value with your password manager, save it temporarily, and enter it here; see Step 7 |
+| Secret | `DISCORD_BOT_TOKEN` | Bot token from the Discord Developer Portal |
+| Text variable | `DISCORD_APPLICATION_ID` | Discord application ID |
+| Text variable | `DISCORD_PUBLIC_KEY` | Discord application public key (hex value) |
+| Text variable | `DISCORD_GUILD_ID` | Discord server ID |
+| Text variable | `DISCORD_SUPPORT_CATEGORY_ID` | Private category where ticket channels should be created |
+| Text variable | `DISCORD_SUPPORT_ROLE_ID` | Role allowed to access ticket channels and use `/ticket-reply` |
+| Secret | `TELEGRAM_BOT_TOKEN` | Token from Telegram's BotFather |
+| Secret | `TELEGRAM_WEBHOOK_SECRET` | Long random value using letters, numbers, `_` or `-` |
+| Text variable | `TELEGRAM_FORUM_CHAT_ID` | Numeric chat ID of the Telegram forum supergroup (often starts with `-100`) |
 
 If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
+
+#### Discord Bot Setup
+
+1. In the Discord Developer Portal, create an application and add a bot. Copy its **Bot Token**, **Application ID**, and **Public Key** into the corresponding Worker settings above. Never paste the Bot Token into the source files or a public channel.
+2. Invite the bot to your server with the `bot` and `applications.commands` scopes. Grant it **Manage Channels**, **View Channels**, **Send Messages**, and **Read Message History**. Assign the bot the support role you plan to use for ticket access.
+3. Create a private category for support tickets. Set its permissions so `@everyone` cannot view it, while the support role can view and send messages. Copy the category ID and support role ID. Enable Developer Mode in Discord's Advanced settings to copy IDs.
+4. The Worker creates each new ticket channel under this category, explicitly denies `@everyone`, and grants access to the configured support role. Verify that the bot is a member of that role before connecting it.
+
+#### Telegram Bot Setup
+
+1. In Telegram, open **@BotFather**, create a bot, and copy the bot token into the `TELEGRAM_BOT_TOKEN` Worker secret.
+2. Create a Telegram supergroup for support, enable **Topics** in the group's settings, and add the bot as an administrator with permission to manage topics and send messages.
+3. Find the group's numeric chat ID using an ID utility you trust, then remove that utility bot from the group. Telegram supergroup IDs commonly start with `-100`. Enter the ID as `TELEGRAM_FORUM_CHAT_ID`.
+4. Generate a separate long webhook secret using your password manager. Use only letters, numbers, `_`, and `-`; save it as `TELEGRAM_WEBHOOK_SECRET` in Worker secrets.
+
+#### Connect The Bots
+
+After saving the bindings, open the staff portal, sign in as Super Admin, and choose **Connect Team Messaging** in **Super Admin Master Controls**. The Worker registers the Discord `/ticket-reply` command and Telegram webhook. Only tickets created after the integrations are connected automatically receive a Discord channel and Telegram topic; existing tickets are not backfilled.
+
+When a new support ticket is created, the Worker creates one private Discord channel inside the configured category and one Telegram topic in the forum supergroup. Staff can reply in the Telegram topic directly. In Discord, use `/ticket-reply` in that ticket's channel, provide the ticket ID shown there, and enter the reply. Replies from either platform are saved as ticket notes and forwarded to the other platform. Telegram webhook updates and Discord interactions are signature/secret checked and deduplicated.
+
+The Access application must protect only `/api/sso/callback`. Leave `/api/telegram/webhook` and `/api/discord/interactions` reachable by their providers; the Worker validates Telegram's webhook secret and Discord's Ed25519 interaction signature itself.
 
 5. Open **Settings > Triggers > Routes** (or **Domains & Routes**) for the Worker. Add the route `portal.example.com/api/*` and select the Cloudflare zone that owns the hostname. Do not route the whole hostname to this API Worker: Pages must continue to serve `/` and `index.html`.
 

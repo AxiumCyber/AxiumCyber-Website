@@ -230,6 +230,245 @@ async function writeAuditEvent(env, account, action, details = {}) {
     }
 }
 
+async function discordApi(env, path, method = 'GET', payload) {
+    if (!env.DISCORD_BOT_TOKEN) throw new Error('Discord bot token is not configured.');
+    const response = await fetch(`https://discord.com/api/v10${path}`, {
+        method,
+        headers: { 'authorization': `Bot ${env.DISCORD_BOT_TOKEN}`, ...(payload ? { 'content-type': 'application/json' } : {}) },
+        ...(payload ? { body: JSON.stringify(payload) } : {})
+    });
+    const result = response.status === 204 ? null : await response.json().catch(() => null);
+    if (!response.ok) throw new Error(result?.message || `Discord API returned ${response.status}.`);
+    return result;
+}
+
+async function telegramApi(env, method, payload) {
+    if (!env.TELEGRAM_BOT_TOKEN) throw new Error('Telegram bot token is not configured.');
+    const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.ok) throw new Error(result?.description || `Telegram API returned ${response.status}.`);
+    return result.result;
+}
+
+function ticketSummary(ticket) {
+    return `Ticket ${ticket.id}: ${ticket.title}\nStatus: ${ticket.status}\nPriority: ${ticket.priority}\nCategory: ${ticket.category}\nOpened by: ${ticket.author} (${ticket.role})\n\n${ticket.desc}`;
+}
+
+async function postTelegramTopicMessage(env, ticket, text) {
+    const destination = ticket.messaging?.telegram;
+    if (!destination) return;
+    try {
+        await telegramApi(env, 'sendMessage', {
+            chat_id: destination.chatId,
+            message_thread_id: destination.threadId,
+            text: text.slice(0, 4000)
+        });
+    } catch (error) {
+        console.error(`Could not post ticket ${ticket.id} to Telegram:`, error);
+    }
+}
+
+async function postDiscordChannelMessage(env, ticket, text) {
+    const destination = ticket.messaging?.discord;
+    if (!destination) return;
+    try {
+        await discordApi(env, `/channels/${destination.channelId}/messages`, 'POST', {
+            content: text.slice(0, 1900),
+            allowed_mentions: { parse: [] }
+        });
+    } catch (error) {
+        console.error(`Could not post ticket ${ticket.id} to Discord:`, error);
+    }
+}
+
+async function broadcastTicketMessage(env, ticket, text, skipPlatform = '') {
+    const deliveries = [];
+    if (skipPlatform !== 'telegram') deliveries.push(postTelegramTopicMessage(env, ticket, text));
+    if (skipPlatform !== 'discord') deliveries.push(postDiscordChannelMessage(env, ticket, text));
+    await Promise.all(deliveries);
+}
+
+async function provisionTicketMessaging(env, ticket) {
+    ticket.messaging = ticket.messaging || {};
+    const errors = [];
+
+    if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_FORUM_CHAT_ID) {
+        try {
+            const topic = await telegramApi(env, 'createForumTopic', {
+                chat_id: env.TELEGRAM_FORUM_CHAT_ID,
+                name: `${ticket.id} ${ticket.title}`.slice(0, 128)
+            });
+            ticket.messaging.telegram = { chatId: String(env.TELEGRAM_FORUM_CHAT_ID), threadId: topic.message_thread_id };
+            await env.AXIUM_KV.put(`telegram_topic:${topic.message_thread_id}`, ticket.id);
+            await postTelegramTopicMessage(env, ticket, ticketSummary(ticket));
+        } catch (error) {
+            errors.push(`Telegram: ${error.message}`);
+        }
+    }
+
+    if (env.DISCORD_BOT_TOKEN && env.DISCORD_GUILD_ID && env.DISCORD_SUPPORT_CATEGORY_ID && env.DISCORD_SUPPORT_ROLE_ID) {
+        try {
+            const channel = await discordApi(env, `/guilds/${env.DISCORD_GUILD_ID}/channels`, 'POST', {
+                name: `${ticket.id}-${ticket.title}`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-|-$/g, '').slice(0, 95),
+                type: 0,
+                parent_id: env.DISCORD_SUPPORT_CATEGORY_ID,
+                permission_overwrites: [
+                    { id: env.DISCORD_GUILD_ID, type: 0, deny: '1024' },
+                    { id: env.DISCORD_SUPPORT_ROLE_ID, type: 0, allow: '68608' }
+                ]
+            });
+            ticket.messaging.discord = { channelId: channel.id, guildId: env.DISCORD_GUILD_ID };
+            await env.AXIUM_KV.put(`discord_channel:${channel.id}`, ticket.id);
+            await postDiscordChannelMessage(env, ticket, ticketSummary(ticket));
+        } catch (error) {
+            errors.push(`Discord: ${error.message}`);
+        }
+    }
+
+    if (errors.length) ticket.messaging.errors = errors;
+    await saveTicket(env, ticket);
+    return ticket.messaging;
+}
+
+async function appendExternalTicketReply(env, ticket, { author, role, message }, source) {
+    const createdAt = new Date().toISOString();
+    ticket.notes.push({ type: 'note', message, author, role, createdAt, source });
+    await saveTicket(env, ticket);
+    await writeAuditEvent(env, { username: author, role }, 'ticket.external_reply', { ticketId: ticket.id, source });
+    await broadcastTicketMessage(env, ticket, `[${ticket.id}] ${author}: ${message}`, source);
+}
+
+function decodeHex(value) {
+    if (typeof value !== 'string' || !/^(?:[a-f0-9]{2})+$/i.test(value)) return null;
+    return Uint8Array.from(value.match(/.{2}/g), byte => parseInt(byte, 16));
+}
+
+async function verifyDiscordRequest(request, bodyText, env) {
+    const publicKey = decodeHex(env.DISCORD_PUBLIC_KEY);
+    const signature = decodeHex(request.headers.get('X-Signature-Ed25519'));
+    const timestamp = request.headers.get('X-Signature-Timestamp');
+    if (!publicKey || !signature || !timestamp || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+    try {
+        const key = await crypto.subtle.importKey('raw', publicKey, { name: 'Ed25519' }, false, ['verify']);
+        return crypto.subtle.verify('Ed25519', key, signature, encoder.encode(`${timestamp}${bodyText}`));
+    } catch (error) {
+        console.error('Could not verify Discord interaction signature:', error);
+        return false;
+    }
+}
+
+async function updateDiscordInteraction(env, interaction, content) {
+    const response = await fetch(`https://discord.com/api/v10/webhooks/${env.DISCORD_APPLICATION_ID}/${interaction.token}/messages/@original`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ content: content.slice(0, 1900), allowed_mentions: { parse: [] } })
+    });
+    if (!response.ok) console.error('Could not update Discord reply command response:', response.status);
+}
+
+async function processDiscordReply(env, interaction) {
+    try {
+        const dedupeKey = `discord_interaction:${interaction.id}`;
+        if (await env.AXIUM_KV.get(dedupeKey)) {
+            await updateDiscordInteraction(env, interaction, 'This reply was already processed.');
+            return;
+        }
+        const ticketId = await env.AXIUM_KV.get(`discord_channel:${interaction.channel_id}`);
+        const ticket = ticketId ? await getTicket(env, ticketId) : null;
+        const options = interaction.data.options || [];
+        const requestedTicketId = options.find(option => option.name === 'ticket_id')?.value;
+        const message = options.find(option => option.name === 'message')?.value;
+        const supportRoleId = env.DISCORD_SUPPORT_ROLE_ID;
+        const memberRoles = interaction.member?.roles || [];
+
+        if (interaction.guild_id !== env.DISCORD_GUILD_ID || !supportRoleId || !memberRoles.includes(supportRoleId)) {
+            await updateDiscordInteraction(env, interaction, 'Only members of the configured support role can reply to tickets.');
+            return;
+        }
+        if (!ticket || ticket.id !== requestedTicketId || ticket.messaging?.discord?.channelId !== interaction.channel_id) {
+            await updateDiscordInteraction(env, interaction, 'This channel is not linked to that ticket.');
+            return;
+        }
+        if (typeof message !== 'string' || !message.trim() || message.length > 500) {
+            await updateDiscordInteraction(env, interaction, 'Reply must be between 1 and 500 characters.');
+            return;
+        }
+        const author = interaction.member?.user?.username || interaction.user?.username || 'Discord support';
+        await appendExternalTicketReply(env, ticket, { author: `Discord: ${author}`, role: 'Tech Support', message: message.trim() }, 'discord');
+        await env.AXIUM_KV.put(dedupeKey, '1', { expirationTtl: 7 * 24 * 60 * 60 });
+        await updateDiscordInteraction(env, interaction, `Reply added to ${ticket.id} and sent to its Telegram topic.`);
+    } catch (error) {
+        console.error('Could not process Discord ticket reply:', error);
+        await updateDiscordInteraction(env, interaction, 'Could not add the reply. Please retry or use the staff portal.');
+    }
+}
+
+async function handleDiscordInteraction(request, env, context) {
+    if (!env.DISCORD_PUBLIC_KEY || !env.DISCORD_BOT_TOKEN || !env.DISCORD_APPLICATION_ID || !env.DISCORD_GUILD_ID) {
+        return json({ error: 'Discord integration is not configured.' }, 503);
+    }
+    const bodyText = await request.text();
+    if (bodyText.length > 12000 || !await verifyDiscordRequest(request, bodyText, env)) return json({ error: 'Invalid Discord interaction signature.' }, 401);
+    let interaction;
+    try { interaction = JSON.parse(bodyText); } catch { return json({ error: 'Invalid Discord interaction body.' }, 400); }
+    if (interaction.type === 1) return json({ type: 1 });
+    if (interaction.type !== 2 || interaction.data?.name !== 'ticket-reply') return json({ error: 'Unsupported Discord interaction.' }, 400);
+    context.waitUntil(processDiscordReply(env, interaction));
+    return json({ type: 5, data: { flags: 64 } });
+}
+
+async function handleTelegramUpdate(request, env) {
+    if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_WEBHOOK_SECRET || !env.TELEGRAM_FORUM_CHAT_ID) {
+        return json({ error: 'Telegram integration is not configured.' }, 503);
+    }
+    if (request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.TELEGRAM_WEBHOOK_SECRET) return json({ error: 'Invalid Telegram webhook secret.' }, 401);
+    let update;
+    try { update = await readBody(request); } catch { return json({ error: 'Invalid Telegram update.' }, 400); }
+    const message = update.message;
+    if (!message?.message_thread_id || String(message.chat?.id) !== String(env.TELEGRAM_FORUM_CHAT_ID) || message.from?.is_bot) return json({ ok: true });
+    const text = typeof message.text === 'string' ? message.text.trim() : '';
+    if (!text) return json({ ok: true });
+    const ticketId = await env.AXIUM_KV.get(`telegram_topic:${message.message_thread_id}`);
+    const ticket = ticketId ? await getTicket(env, ticketId) : null;
+    if (!ticket || ticket.messaging?.telegram?.chatId !== String(message.chat.id)) return json({ ok: true });
+    const dedupeKey = `telegram_update:${update.update_id}`;
+    if (await env.AXIUM_KV.get(dedupeKey)) return json({ ok: true });
+    const author = message.from.username || [message.from.first_name, message.from.last_name].filter(Boolean).join(' ') || 'Telegram support';
+    await appendExternalTicketReply(env, ticket, { author: `Telegram: ${author}`, role: 'Tech Support', message: text.slice(0, 500) }, 'telegram');
+    await env.AXIUM_KV.put(dedupeKey, '1', { expirationTtl: 7 * 24 * 60 * 60 });
+    return json({ ok: true });
+}
+
+async function setupMessagingIntegrations(env, origin) {
+    const result = { discord: false, telegram: false };
+    if (env.DISCORD_BOT_TOKEN && env.DISCORD_APPLICATION_ID && env.DISCORD_PUBLIC_KEY && env.DISCORD_GUILD_ID && env.DISCORD_SUPPORT_CATEGORY_ID && env.DISCORD_SUPPORT_ROLE_ID) {
+        await discordApi(env, `/applications/${env.DISCORD_APPLICATION_ID}/guilds/${env.DISCORD_GUILD_ID}/commands`, 'PUT', [{
+            name: 'ticket-reply',
+            description: 'Reply to the ticket linked to this channel',
+            options: [
+                { name: 'ticket_id', description: 'Ticket ID shown in this channel', type: 3, required: true },
+                { name: 'message', description: 'Reply text', type: 3, required: true, max_length: 500 }
+            ]
+        }]);
+        result.discord = true;
+    }
+    if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_WEBHOOK_SECRET && env.TELEGRAM_FORUM_CHAT_ID) {
+        const webhookUrl = new URL('/api/telegram/webhook', origin).toString();
+        await telegramApi(env, 'setWebhook', {
+            url: webhookUrl,
+            secret_token: env.TELEGRAM_WEBHOOK_SECRET,
+            allowed_updates: ['message'],
+            drop_pending_updates: false
+        });
+        result.telegram = true;
+    }
+    return result;
+}
+
 async function requestHandler(request, env) {
     if (!env.AXIUM_KV) return json({ error: 'Cloudflare KV binding AXIUM_KV is not configured.' }, 503);
 
@@ -382,6 +621,17 @@ async function requestHandler(request, env) {
         return json({ authMode: body.mode, changed: previousMode !== body.mode });
     }
 
+    if (path === '/api/admin/messaging/setup' && method === 'POST') {
+        if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
+        try {
+            const configured = await setupMessagingIntegrations(env, url.origin);
+            await writeAuditEvent(env, account, 'system.messaging_integrations_setup', configured);
+            return json({ configured });
+        } catch (error) {
+            return json({ error: error.message }, 502);
+        }
+    }
+
     if (path === '/api/tickets' && method === 'GET') {
         return json({ tickets: await listTickets(env) });
     }
@@ -410,8 +660,9 @@ async function requestHandler(request, env) {
             notes: [{ type: 'created', message: 'Ticket created.', author: account.username, role: account.role, createdAt: new Date().toISOString() }]
         };
         await saveTicket(env, ticket);
+        const messaging = await provisionTicketMessaging(env, ticket);
         await writeAuditEvent(env, account, 'ticket.created', { ticketId: ticket.id, priority: ticket.priority, category: ticket.category });
-        return json({ ticket }, 201);
+        return json({ ticket, messaging }, 201);
     }
 
     const ticketMatch = path.match(/^\/api\/tickets\/(AX-[a-f0-9-]+)$/i);
@@ -437,6 +688,10 @@ async function requestHandler(request, env) {
             return json({ error: 'No supported ticket update was provided.' }, 400);
         }
         await saveTicket(env, ticket);
+        const eventMessage = body.status === undefined
+            ? `[${ticket.id}] ${account.username}: ${body.note.trim()}`
+            : `[${ticket.id}] Status changed to ${body.status} by ${account.username}.`;
+        await broadcastTicketMessage(env, ticket, eventMessage);
         await writeAuditEvent(env, account, body.status === undefined ? 'ticket.note_added' : 'ticket.status_changed', {
             ticketId: ticket.id,
             ...(body.status === undefined ? {} : { status: body.status })
@@ -493,8 +748,20 @@ async function requestHandler(request, env) {
 }
 
 export default {
-    async fetch(request, env) {
-        if (new URL(request.url).pathname.startsWith('/api/')) {
+    async fetch(request, env, context) {
+        const path = new URL(request.url).pathname;
+        if (path === '/api/discord/interactions' && request.method === 'POST') {
+            return handleDiscordInteraction(request, env, context);
+        }
+        if (path === '/api/telegram/webhook' && request.method === 'POST') {
+            try {
+                return await handleTelegramUpdate(request, env);
+            } catch (error) {
+                console.error('Could not process Telegram update:', error);
+                return json({ error: 'Could not process Telegram update.' }, 500);
+            }
+        }
+        if (path.startsWith('/api/')) {
             try {
                 return await requestHandler(request, env);
             } catch (error) {
