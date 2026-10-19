@@ -1,197 +1,162 @@
 # Axium Cyber Website
 
-The Axium Cyber public website and staff portal. Cloudflare Access provides organization SSO, a Worker validates Access identity tokens and enforces roles, and KV stores staff role assignments, tickets, settings, and audit events.
+The Axium Cyber public website and staff portal. Local username/password authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
 
-> Follow the steps in order. You will set the Access team domain, Access application audience, and KV namespace ID in `wrangler.jsonc`. Keep the bootstrap secret out of source files and chat messages.
+> This guide uses the Cloudflare dashboard only. No Wrangler, PowerShell, or terminal commands are required. Keep the bootstrap secret out of source files and chat messages.
 
 ## How It Fits Together
 
 ```mermaid
 flowchart LR
-		Browser[Staff browser] --> Access[Cloudflare Access]
-		Access --> IdP[Organization identity provider]
-		Access -->|Signed identity token| Worker[Cloudflare Worker]
-		Browser -->|Same-origin API + Access token| Worker
-		Worker -->|Email role assignments, tickets, audit events| KV[(Cloudflare KV)]
+    Browser[Staff browser] --> Pages[Cloudflare Pages]
+    Browser -->|Local login and API| Worker[Cloudflare Worker]
+    Worker -->|Accounts, sessions, tickets, auth mode| KV[(Cloudflare KV)]
+    Browser -. optional SSO .-> Access[Cloudflare Access]
+    Access --> IdP[Organization identity provider]
+    Access -->|Signed JWT to callback only| Worker
 ```
 
-	The identity provider authenticates staff. Cloudflare Access issues a signed token, and the Worker validates its signature, issuer, audience, expiry, and email before looking up that email's role in KV. The browser never sends a password to this portal.
+Local sign-in is the default. When SSO is activated, the Worker redirects sign-in through Cloudflare Access, validates the returned identity token, then matches the verified email to a KV account. Access protects only `/api/sso/callback`, so its edge login does not prevent the Super Admin from switching SSO off.
 
 ## Before You Start
 
-- A Cloudflare account with Workers enabled
-- A domain/hostname in Cloudflare for the portal (for example, `portal.example.com`)
-- A supported identity provider configured in Cloudflare Zero Trust (Google, Microsoft Entra ID, Okta, or another supported provider)
-- Node.js and npm installed
-- A terminal opened in this project directory
+- A Cloudflare account with Workers, Pages, KV, and Zero Trust Access available
+- A domain/hostname managed by Cloudflare for the portal (for example, `portal.example.com`)
+- Access to the identity provider you want staff to use (Google, Microsoft Entra ID, Okta, or another provider supported by Cloudflare)
+- The project files `index.html` and `worker.mjs`
 - An internet connection (the site loads Tailwind CSS, Font Awesome, and Google Fonts from CDNs)
 
-Check that Node and npm are available:
+## Step 1: Create The Pages Site
 
-```sh
-node --version
-npm --version
-```
+1. Sign in to the Cloudflare dashboard.
+2. Open **Workers & Pages**, choose **Create application**, then choose **Pages** and the direct-upload option. Cloudflare may label this **Upload assets**.
+3. On your computer, make a folder containing the site's `index.html`. Do not include `.dev.vars`, `worker.mjs`, `.git`, or any secret files in the Pages upload.
+4. Give the Pages project a name such as `axium-cyber-portal`, then upload the folder and deploy it.
+5. In the Pages project, open **Custom domains** and attach your Cloudflare-managed hostname, for example `portal.example.com`. Use this same hostname for Access and the API Worker.
 
-Commands below use `npx wrangler`; npm will download Wrangler when needed. No API token needs to be added to this project.
+## Step 2: Add Your Identity Provider (For Optional SSO)
 
-## Step 1: Sign In To Cloudflare
+In the Cloudflare dashboard, open **Zero Trust > Settings > Authentication > Login methods**. Add your organization's identity provider and finish the provider setup shown in the dashboard. Confirm the provider sends a verified email identity; that email is the key used for each staff role.
 
-From the project directory, run:
+This step is optional while the portal is in local mode. The portal never collects or stores your IdP password; Cloudflare Access and your identity provider handle authentication and MFA.
 
-```sh
-npx wrangler login
-```
+## Step 3: Configure The Optional SSO Callback
 
-A browser window opens. Sign in to the Cloudflare account that should own this Worker and approve access. Return to the terminal and wait for Wrangler to confirm login before continuing.
+1. In **Zero Trust > Access > Applications**, choose **Add an application > Self-hosted**.
+2. Set the application hostname to your Pages hostname and its path to `/api/sso/callback`. Do not protect the whole hostname or `/api/*`.
+3. Add an **Allow** policy for the staff emails or company email domain permitted to use SSO. Keep the allowed group narrow.
+4. Save the application. On its overview/details screen, copy the **Application Audience (AUD) Tag**. Also note your team domain, which looks like `your-team.cloudflareaccess.com`.
 
-## Step 2: Create The KV Namespace
-
-Create the production namespace:
-
-```sh
-npx wrangler kv namespace create AXIUM_KV
-```
-
-Wrangler prints output similar to this (your ID will be different):
-
-```text
-Created namespace with title "axium-cyber-portal-AXIUM_KV"
-Add the following to your configuration file:
-{ "binding": "AXIUM_KV", "id": "0123456789abcdef0123456789abcdef" }
-```
-
-Copy the 32-character ID from your own output. Open `wrangler.jsonc` and replace only the placeholder below:
-
-```jsonc
-"kv_namespaces": [
-	{
-		"binding": "AXIUM_KV",
-		"id": "PASTE_YOUR_REAL_NAMESPACE_ID_HERE"
-	}
-]
-```
-
-Do not paste the example ID above; it is illustrative only. Keep the binding name exactly `AXIUM_KV`. The Worker uses that name to access KV.
+This path-specific Access application is used only when the Super Admin activates SSO. Local username/password sign-in and the rest of the site remain outside Access.
 
 ```mermaid
 flowchart TD
-		A[Run namespace create command] --> B[Copy your namespace ID]
-		B --> C[Open wrangler.jsonc]
-		C --> D[Replace placeholder ID]
-		D --> E[Save file]
+    Staff[Staff selects SSO] --> Access[Access protects /api/sso/callback]
+    Access --> IdP[Organization identity provider]
+    IdP -->|Verified email| Access
+    Access -->|Signed JWT| Worker[Worker validates JWT]
+    Worker -->|Email role lookup| KV[(Cloudflare KV)]
 ```
 
-## Step 3: Add The One-Time Setup Secret
+## Step 4: Create The KV Namespace
 
-Generate a private setup key in your terminal:
+1. In the Cloudflare dashboard, open **Storage & databases > Workers KV** (the exact menu grouping may vary).
+2. Choose **Create namespace**.
+3. Name it `AXIUM_KV` and create it.
 
-```sh
-openssl rand -hex 32
-```
+You do not need to copy a namespace ID into a project file when using the dashboard. You will bind the namespace to the Worker by name in Step 5.
 
-Keep the output available for the first-admin step. Do not put it in `wrangler.jsonc`, `README.md`, or `index.html`. Store it as a Cloudflare Worker secret:
+## Step 5: Create And Configure The API Worker
 
-```sh
-npx wrangler secret put AXIUM_BOOTSTRAP_SECRET
-```
+1. Open **Workers & Pages > Create application > Worker** and create a Worker, for example `axium-portal-api`.
+2. Open **Edit code** / **Quick edit**. In this workspace, open `worker.mjs`, copy its complete contents, replace the starter Worker code in the dashboard editor, and choose **Deploy**.
+3. Open the Worker **Settings > Bindings** (sometimes called **Variables and Secrets**).
+4. Add these bindings exactly:
 
-When Wrangler prompts, paste the generated key and press Enter. It may not echo the value; that is expected. The secret is used only to create the first Super Admin account.
+| Type | Variable/binding name | Value |
+| --- | --- | --- |
+| KV namespace | `AXIUM_KV` | Select the `AXIUM_KV` namespace created in Step 4 |
+| Text variable | `ACCESS_TEAM_DOMAIN` | Optional until SSO is activated; then use your team domain, e.g. `your-team.cloudflareaccess.com` |
+| Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
+| Secret | `AXIUM_BOOTSTRAP_SECRET` | Generate a long random value with your password manager, save it temporarily, and enter it here; see Step 7 |
 
-## Step 4: Check The Configuration Before Deploying
+If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
 
-Run a dry build:
+5. Open **Settings > Triggers > Routes** (or **Domains & Routes**) for the Worker. Add the route `portal.example.com/api/*` and select the Cloudflare zone that owns the hostname. Do not route the whole hostname to this API Worker: Pages must continue to serve `/` and `index.html`.
 
-```sh
-npx wrangler deploy --dry-run
-```
+The `/api/*` route sends API requests to the Worker. Other paths remain served by Pages on the same hostname, so the browser can use same-origin requests and Cloudflare Access identity headers.
 
-Look for both bindings in the output:
+## Step 6: Verify Dashboard Settings
 
-```text
-env.AXIUM_KV    KV Namespace
-env.ASSETS      Assets
-```
+Check all of the following before first sign-in:
 
-If the output shows `REPLACE_WITH_KV_NAMESPACE_ID`, go back to Step 2 and replace the placeholder. A dry run builds the Worker but does not publish it.
-
-## Step 5: Deploy The Website And Worker
-
-```sh
-npx wrangler deploy
-```
-
-At the end, Wrangler prints the deployed URL. It normally looks like:
-
-```text
-https://axium-cyber-portal.<your-workers-subdomain>.workers.dev
-```
-
-Open the exact URL printed by Wrangler. Do not open `index.html` directly from your computer for the Cloudflare portal; the portal needs the Worker API.
-
-## Step 6: Create The First Super Admin
-
-At the deployed site, click **Staff & Admin Portal**. The first visit displays the initial setup form instead of a login form:
+- Pages custom domain is `portal.example.com` (or your chosen hostname).
+- The Access Self-hosted application protects only `portal.example.com/api/sso/callback`, not the whole hostname.
+- The Worker route is `portal.example.com/api/*`, not `portal.example.com/*`.
+- Worker KV binding is named exactly `AXIUM_KV` and points to your namespace.
+- `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` match the Access team and application.
+- `AXIUM_BOOTSTRAP_SECRET` is saved as a Worker **secret**, not a plain-text variable or source file.
 
 ```mermaid
 flowchart LR
-		A[Staff & Admin Portal] --> B[Initial setup form]
-		B --> C[Username is admin]
-		B --> D[Paste AXIUM_BOOTSTRAP_SECRET]
-		B --> E[Choose a new password, 12+ characters]
-		C --> F[Create Super Admin]
-		D --> F
-		E --> F
-		F --> G[Staff dashboard]
+	Pages[Pages serves index.html] -->|portal.example.com/api/*| Worker[Worker API]
+	Access[Access protects portal.example.com] --> Pages
+	Access --> Worker
+	Worker --> KV[(AXIUM_KV)]
 ```
 
-Enter the same setup key you saved in Step 3 and choose a new admin password with at least 12 characters. The username is fixed as `admin`. Click **CREATE SUPER ADMIN**; success opens the dashboard.
+## Step 7: Create The First Super Admin (Local Mode)
 
-After you have confirmed that `admin` can sign in, remove the setup secret so it cannot be used again:
+Open `https://portal.example.com` (replace this with your hostname). Local authentication is active by default. The first visit displays the one-time setup form:
 
-```sh
-npx wrangler secret delete AXIUM_BOOTSTRAP_SECRET
+```mermaid
+flowchart LR
+    A[Initial setup form] --> B[Choose username and email]
+    A --> C[Enter one-time setup key]
+    A --> D[Choose local password]
+    B --> E[Create local Super Admin]
+    C --> E
+    D --> E
+    E --> F[Local sign-in and dashboard]
 ```
 
-Do not delete the KV namespace. It contains the live user and ticket data.
+Enter the administrator's username, SSO email, the exact `AXIUM_BOOTSTRAP_SECRET` from Step 5, and a strong local password with at least 12 characters. Click **CREATE SUPER ADMIN**. This creates the first KV account and signs you in.
 
-## Step 7: Add Staff Accounts
+After the dashboard opens, return to the Worker **Settings > Variables and Secrets** and delete `AXIUM_BOOTSTRAP_SECRET`. Keep the `AXIUM_KV` binding and namespace; they contain live portal data.
 
-Sign in as `admin`, then use **Staff Identity Registry** to create staff accounts. Assign each person one of the available roles: Admin, Tech Support, Moderator, or Staff. Share their username and initial password with them privately. Staff sign in from the portal tab; the Worker validates their role on every protected API request.
+## Step 8: Assign Staff Roles
 
-The old browser-only demo accounts (`admin` / `anubis2026` and `analyst` / `cyber2026`) are not Cloudflare accounts and are not migrated. Create the real accounts through the Super Admin registry.
+Sign in as the Super Admin. In **Staff Identity Registry**, add a username, exact SSO email, and local password for each staff member, then assign Admin, Tech Support, Moderator, or Staff. Passwords are required even if you expect to use SSO so the Super Admin can switch the portal back to local mode later. Staff may use their local credentials while local mode is active.
 
-## Optional: Run Locally First
+The old browser-only demo accounts (`admin` / `anubis2026` and `analyst` / `cyber2026`) are not Cloudflare accounts and will not work. Create accounts in the registry.
 
-Local Wrangler uses a local KV emulator; it does not change the production KV namespace. Prepare a local-only secret file:
+## Step 9: Turn SSO On Or Off
 
-```sh
-cp .dev.vars.example .dev.vars
-```
+Before turning SSO on, make sure the Access app protects only `/api/sso/callback`, its Allow policy includes the staff identities, and the Worker has `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` set. Sign in as Super Admin and use **Enable SSO** in **Super Admin Master Controls**. The current session ends and the portal redirects to Cloudflare Access. Staff then sign in with their IdP account; the Access email must match the email on their portal account.
 
-Open `.dev.vars` and replace the sample value with a unique local setup key. This file is ignored by Git. Then start the local site:
-
-```sh
-npx wrangler dev
-```
-
-Open `http://localhost:8787`, choose the staff portal, and initialize the local `admin` using the key from `.dev.vars`. Local test accounts and tickets are separate from the deployed site. Stop the dev server with `Ctrl+C`.
+To turn SSO off, sign in as Super Admin using SSO, choose **Disable SSO**, and confirm. The session ends and local username/password sign-in becomes active again. The Access application may remain configured because only its callback path is protected; it will not gate normal portal use in local mode.
 
 ## Troubleshooting
 
 | What you see | What to check |
 | --- | --- |
-| `REPLACE_WITH_KV_NAMESPACE_ID` in Wrangler output | The ID in `wrangler.jsonc` is still the placeholder. Repeat Step 2. |
-| Wrangler says you are not authenticated | Run `npx wrangler login` and approve access in the browser. |
-| Setup form says setup is disabled | Confirm `AXIUM_BOOTSTRAP_SECRET` exists with `npx wrangler secret list`, then deploy again. For local development, set the value in `.dev.vars`. |
-| Setup form says invalid setup key | Use the exact key generated in Step 3. It is not your Cloudflare password or your new admin password. |
-| Login form appears after setup | Confirm you opened the deployed URL from the same Worker deployment and that KV is bound as `AXIUM_KV`. |
-| Site loads but portal reports a connection error | Open the Wrangler-provided Worker URL, not a local `file://` page or a different Pages/Worker origin. |
+| Local sign-in is not visible | Check that the Super Admin has not activated SSO. If SSO is active, choose **Disable SSO** after signing in through Access. |
+| Access sign-in page does not appear after enabling SSO | Confirm the Access application protects only `portal.example.com/api/sso/callback`, your IdP is enabled, and the Super Admin selected **Enable SSO**. |
+| Worker says Access is not configured | In Worker settings, set `ACCESS_TEAM_DOMAIN` to your team domain without `https://`, and set `ACCESS_AUD` to the exact Access application Audience Tag. |
+| Access token is rejected | Check the team domain, Audience Tag, callback path, and that the Access app protects the callback on the same hostname as the portal. |
+| SSO works but portal says the identity has no role | Sign in locally as Super Admin (or use another provisioned Super Admin), then add the exact IdP email to Staff Identity Registry. |
+| Setup says it is disabled | Confirm `AXIUM_BOOTSTRAP_SECRET` exists as a Worker secret and then deploy the Worker from the dashboard. |
+| Setup says the key is invalid | Re-enter the exact setup key you saved as the Worker secret. It is not your Cloudflare, local, or IdP password. |
+| A staff user cannot switch back to local mode | Every account needs a local password. The registry requires one when adding accounts so both modes remain available. |
+| Public page loads but API returns 404 | Confirm the Worker route is `portal.example.com/api/*` and points to the API Worker. |
+| API returns a Pages HTML page instead of JSON | Check that the Worker API route takes precedence for `/api/*`, while Pages serves the rest of the hostname. |
 
 ## Data And Security Notes
 
-- KV stores PBKDF2 password hashes, expiring server-side sessions, tickets, settings, and account/ticket audit events. Plaintext passwords are not stored.
-- The session uses an `HttpOnly`, `Secure`, `SameSite=Strict` cookie.
+- Local account passwords are stored as PBKDF2 hashes, never plaintext. The Worker issues HttpOnly, Secure, SameSite cookies backed by mode-tagged KV sessions.
+- In SSO mode, Cloudflare Access authenticates the user at the protected callback. The Worker verifies the token signature, issuer, audience, expiry, and email, then creates a portal session from the matching KV account.
+- KV stores users, password hashes, sessions, auth mode, tickets, settings, and account/ticket audit events.
+- Cloudflare Access protects only the SSO callback, not the whole website. Local mode can therefore remain available until the Super Admin activates SSO.
 - Cloudflare KV is eventually consistent, not transactional. Concurrent edits may race; it is not a good fit for regulated or high-volume ticket data. Use a transactional database such as D1 if strict consistency is required.
 - Audit events are application-level history, not immutable or tamper-proof records. Add separate backups/retention controls if they are operationally important.
 - The forensic scanner and terminal panels are interface demos; they do not contact real threat-intelligence or scanning services.

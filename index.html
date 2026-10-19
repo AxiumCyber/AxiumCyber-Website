@@ -299,10 +299,20 @@
                     </div>
 
                     <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200 font-mono">
-                        SINGLE SIGN-ON: your organization's identity provider authenticates you through Cloudflare Access.
+                        <span id="auth-mode-notice">LOCAL SIGN-IN IS ACTIVE.</span>
                     </div>
 
-                    <div id="sso-login-panel" class="space-y-3">
+                    <form id="local-login-form" onsubmit="handleLogin(event)" class="space-y-3">
+                        <label class="block text-xs font-orbitron text-slate-300">USERNAME
+                            <input id="login-user" type="text" required autocomplete="username" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-cyan-400 outline-none">
+                        </label>
+                        <label class="block text-xs font-orbitron text-slate-300">PASSWORD
+                            <input id="login-pass" type="password" required autocomplete="current-password" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-cyan-400 outline-none">
+                        </label>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-sm uppercase tracking-wider hover:shadow-neon-cyan transition-all">SIGN IN</button>
+                    </form>
+
+                    <div id="sso-login-panel" class="hidden space-y-3">
                         <p class="text-xs text-slate-300 font-mono">Continue with your organization account. Portal permissions are assigned to your SSO email.</p>
                         <button type="button" onclick="redirectToSso()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-sm uppercase tracking-wider hover:shadow-neon-cyan transition-all">
                             <i class="fa-solid fa-right-to-bracket mr-2"></i>CONTINUE WITH SSO
@@ -312,11 +322,19 @@
                     <form id="bootstrap-form" onsubmit="handleBootstrap(event)" class="hidden border-t border-slate-800 pt-4 space-y-3">
                         <div>
                             <h3 class="font-orbitron font-bold text-sm text-amber-200">INITIALIZE SUPER ADMIN</h3>
-                            <p class="text-[11px] text-slate-400 font-mono mt-1">Assign the first Super Admin role to the SSO identity already signed in.</p>
+                            <p class="text-[11px] text-slate-400 font-mono mt-1">Create the first local administrator. SSO can be enabled later from the dashboard.</p>
                         </div>
-                        <div class="text-xs font-mono text-cyan-300">SSO EMAIL: <span id="bootstrap-identity">Loading identity...</span></div>
+                        <label class="block text-xs font-orbitron text-slate-300">ADMIN USERNAME
+                            <input id="bootstrap-username" type="text" required minlength="3" maxlength="24" pattern="[A-Za-z0-9._-]+" value="admin" autocomplete="username" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                        </label>
+                        <label class="block text-xs font-orbitron text-slate-300">ADMIN SSO EMAIL
+                            <input id="bootstrap-email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                        </label>
                         <label class="block text-xs font-orbitron text-slate-300">ONE-TIME SETUP KEY
                             <input id="bootstrap-key" type="password" required autocomplete="off" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                        </label>
+                        <label class="block text-xs font-orbitron text-slate-300">LOCAL ADMIN PASSWORD
+                            <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                         </label>
                         <button type="submit" class="w-full py-3 rounded-xl bg-amber-300 text-slate-950 font-orbitron font-bold text-sm uppercase tracking-wider hover:bg-amber-200 transition-all">CREATE SUPER ADMIN</button>
                     </form>
@@ -335,7 +353,7 @@
                         </div>
                         <div>
                             <h2 class="font-orbitron font-bold text-xl text-white">AXIUM COMMAND & CONTROL</h2>
-                            <p class="text-xs text-slate-400 font-mono">Cloudflare Access SSO • Role-bound dashboard</p>
+                            <p class="text-xs text-slate-400 font-mono">Local credentials with optional Cloudflare Access SSO</p>
                         </div>
                     </div>
                     <div class="text-right">
@@ -353,7 +371,11 @@
                         </div>
                         <span class="px-2.5 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-[10px] font-mono text-amber-300 uppercase">RESTRICTED LEVEL 5</span>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button onclick="toggleAuthenticationMode()" id="auth-mode-btn" class="p-3 rounded-xl bg-slate-900 border border-cyan-500/40 text-left hover:border-cyan-300 transition-all">
+                            <span id="auth-mode-title" class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-right-to-bracket mr-2 text-cyan-300"></i>Enable SSO</span>
+                            <span id="auth-mode-description" class="text-[11px] text-slate-400 font-mono">Switch sign-in to Cloudflare Access</span>
+                        </button>
                         <button onclick="toggleSystemLockdown()" id="lockdown-btn" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-left hover:border-amber-400 transition-all">
                             <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-lock mr-2 text-amber-400"></i>System Lockdown</span>
                             <span class="text-[11px] text-slate-400 font-mono">Halt all non-admin ticketing actions</span>
@@ -377,11 +399,16 @@
                         </div>
                         <span id="user-count" class="text-[10px] font-mono text-purple-200">0 ACCOUNTS</span>
                     </div>
-                    <form id="add-user-form" onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                    <form id="add-user-form" onsubmit="handleAddUser(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+                        <label class="text-[10px] font-orbitron text-slate-300">USERNAME
+                            <input id="new-user-name" type="text" required minlength="3" maxlength="24" pattern="[A-Za-z0-9._-]+" autocomplete="off" placeholder="e.g. j.smith" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
+                        </label>
                         <label class="text-[10px] font-orbitron text-slate-300">SSO EMAIL
                             <input id="new-user-email" type="email" required maxlength="254" autocomplete="off" placeholder="name@company.com" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
                         </label>
-                        <div class="text-[10px] font-mono text-slate-400">Sign-in is managed by your configured SSO provider.</div>
+                        <label class="text-[10px] font-orbitron text-slate-300">LOCAL PASSWORD
+                            <input id="new-user-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
+                        </label>
                         <label class="text-[10px] font-orbitron text-slate-300">ROLE
                             <select id="new-user-role" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:border-purple-400 outline-none">
                                 <option value="Admin">Admin</option>
@@ -395,7 +422,7 @@
                     <div id="user-management-message" role="status" aria-live="polite" class="hidden text-xs font-mono"></div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead><tr class="border-b border-slate-800 text-[10px] font-orbitron text-slate-400"><th class="py-2 px-3">SSO EMAIL</th><th class="py-2 px-3">ROLE</th><th class="py-2 px-3 text-right">ACTION</th></tr></thead>
+                            <thead><tr class="border-b border-slate-800 text-[10px] font-orbitron text-slate-400"><th class="py-2 px-3">USERNAME</th><th class="py-2 px-3">SSO EMAIL</th><th class="py-2 px-3">ROLE</th><th class="py-2 px-3 text-right">ACTION</th></tr></thead>
                             <tbody id="users-table-body" class="font-mono text-xs divide-y divide-slate-800/60"></tbody>
                         </table>
                     </div>
@@ -693,7 +720,9 @@
         // --- Application State ---
         let currentTab = 'public';
         let currentUser = null;
+        let currentEmail = null;
         let currentRole = 'Staff';
+        let currentAuthMode = 'local';
         let isLockedDown = false;
         let currentFilter = 'ALL';
         let activeTicketId = null;
@@ -792,8 +821,26 @@
         async function redirectToSso() {
             const message = document.getElementById('login-message');
             try {
-                const { loginUrl } = await apiRequest('/api/config');
-                window.location.assign(loginUrl);
+                window.location.assign('/api/sso/start');
+            } catch (error) {
+                message.textContent = error.message;
+                message.classList.remove('hidden');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const message = document.getElementById('login-message');
+            try {
+                await apiRequest('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: document.getElementById('login-user').value.trim(),
+                        password: document.getElementById('login-pass').value
+                    })
+                });
+                message.classList.add('hidden');
+                await checkSessionState();
             } catch (error) {
                 message.textContent = error.message;
                 message.classList.remove('hidden');
@@ -807,7 +854,10 @@
                 await apiRequest('/api/bootstrap', {
                     method: 'POST',
                     body: JSON.stringify({
-                        setupSecret: document.getElementById('bootstrap-key').value
+                        setupSecret: document.getElementById('bootstrap-key').value,
+                        username: document.getElementById('bootstrap-username').value.trim(),
+                        email: document.getElementById('bootstrap-email').value.trim(),
+                        password: document.getElementById('bootstrap-password').value
                     })
                 });
                 document.getElementById('bootstrap-form').reset();
@@ -821,47 +871,56 @@
 
         async function handleLogout() {
             try {
-                const { logoutUrl } = await apiRequest('/api/config');
-                window.location.assign(logoutUrl);
+                await apiRequest('/api/logout', { method: 'POST' });
+                currentUser = null;
+                currentEmail = null;
+                currentRole = 'Staff';
+                ticketsCache = [];
+                await checkSessionState();
             } catch (error) {
                 document.getElementById('login-message').textContent = error.message;
                 document.getElementById('login-message').classList.remove('hidden');
             }
         }
 
+        function updateAuthModeControls(setupRequired = false) {
+            const localLogin = document.getElementById('local-login-form');
+            const ssoLogin = document.getElementById('sso-login-panel');
+            const bootstrapForm = document.getElementById('bootstrap-form');
+            const authModeNotice = document.getElementById('auth-mode-notice');
+            localLogin.classList.toggle('hidden', setupRequired || currentAuthMode !== 'local');
+            ssoLogin.classList.toggle('hidden', setupRequired || currentAuthMode !== 'sso');
+            bootstrapForm.classList.toggle('hidden', !setupRequired);
+            authModeNotice.textContent = currentAuthMode === 'sso'
+                ? 'SINGLE SIGN-ON IS ACTIVE THROUGH CLOUDFLARE ACCESS.'
+                : 'LOCAL USERNAME AND PASSWORD SIGN-IN IS ACTIVE.';
+        }
+
         async function checkSessionState() {
             const authContainer = document.getElementById('portal-auth-container');
             const workspace = document.getElementById('portal-workspace');
             const statusIndicator = document.getElementById('auth-status-indicator');
-            const bootstrapForm = document.getElementById('bootstrap-form');
-            const ssoLoginPanel = document.getElementById('sso-login-panel');
             const message = document.getElementById('login-message');
             try {
                 const session = await apiRequest('/api/session');
+                currentAuthMode = session.authMode;
                 isLockedDown = session.lockdown === true;
                 if (!session.authenticated) {
                     currentUser = null;
+                    currentEmail = null;
                     currentRole = 'Staff';
                     authContainer.classList.remove('hidden');
                     workspace.classList.add('hidden');
                     statusIndicator.classList.add('hidden');
                     statusIndicator.classList.remove('flex');
-                    const needsBootstrap = session.setupRequired && session.ssoAuthenticated;
-                    bootstrapForm.classList.toggle('hidden', !needsBootstrap);
-                    ssoLoginPanel.classList.toggle('hidden', needsBootstrap);
-                    if (needsBootstrap) {
-                        document.getElementById('bootstrap-identity').textContent = session.identityEmail;
-                        message.classList.add('hidden');
-                    } else if (session.ssoAuthenticated && !session.setupRequired) {
-                        message.textContent = `SSO identity ${session.identityEmail} is not assigned a portal role. Contact your Super Admin.`;
-                        message.classList.remove('hidden');
-                    } else {
-                        message.classList.add('hidden');
-                    }
+                    updateAuthModeControls(session.setupRequired);
+                    message.classList.add('hidden');
+                    document.getElementById('auth-mode-btn').classList.toggle('hidden', true);
                     return;
                 }
 
                 currentUser = session.user;
+                currentEmail = session.email;
                 currentRole = session.role;
                 authContainer.classList.add('hidden');
                 workspace.classList.remove('hidden');
@@ -874,6 +933,8 @@
                 const isSuperAdmin = currentRole === 'SUPER ADMIN';
                 document.getElementById('super-admin-panel').classList.toggle('hidden', !isSuperAdmin);
                 document.getElementById('user-management-panel').classList.toggle('hidden', !isSuperAdmin);
+                document.getElementById('auth-mode-btn').classList.toggle('hidden', !isSuperAdmin);
+                updateAuthModeButton();
                 if (isSuperAdmin) await renderUsers();
                 await loadTickets();
             } catch (error) {
@@ -883,8 +944,8 @@
                 workspace.classList.add('hidden');
                 statusIndicator.classList.add('hidden');
                 statusIndicator.classList.remove('flex');
-                bootstrapForm.classList.add('hidden');
-                ssoLoginPanel.classList.remove('hidden');
+                updateAuthModeControls();
+                document.getElementById('auth-mode-btn').classList.add('hidden');
                 message.textContent = `Portal connection failed: ${error.message}`;
                 message.classList.remove('hidden');
             }
@@ -899,8 +960,11 @@
 
             users.forEach(user => {
                 const row = document.createElement('tr');
+                const usernameCell = document.createElement('td');
+                usernameCell.className = 'py-3 px-3 text-slate-200';
+                usernameCell.textContent = user.username;
                 const emailCell = document.createElement('td');
-                emailCell.className = 'py-3 px-3 text-slate-200';
+                emailCell.className = 'py-3 px-3 text-slate-400';
                 emailCell.textContent = user.email;
                 const roleCell = document.createElement('td');
                 roleCell.className = 'py-3 px-3 text-cyan-300';
@@ -922,7 +986,7 @@
                     actionCell.append(deleteButton);
                 }
 
-                row.append(emailCell, roleCell, actionCell);
+                row.append(usernameCell, emailCell, roleCell, actionCell);
                 tbody.append(row);
             });
         }
@@ -931,13 +995,15 @@
             e.preventDefault();
             if (currentRole !== 'SUPER ADMIN') return;
 
+            const username = document.getElementById('new-user-name').value.trim().toLowerCase();
             const email = document.getElementById('new-user-email').value.trim().toLowerCase();
+            const password = document.getElementById('new-user-password').value;
             const role = document.getElementById('new-user-role').value;
             const message = document.getElementById('user-management-message');
             try {
-                await apiRequest('/api/users', { method: 'POST', body: JSON.stringify({ email, role }) });
+                await apiRequest('/api/users', { method: 'POST', body: JSON.stringify({ username, email, password, role }) });
                 document.getElementById('add-user-form').reset();
-                message.textContent = `SSO identity ${email} assigned the ${role} role.`;
+                message.textContent = `Account ${username} (${email}) created with the ${role} role.`;
                 message.className = 'text-xs font-mono text-emerald-300';
                 await renderUsers();
             } catch (error) {
@@ -947,7 +1013,7 @@
         }
 
         async function deleteUser(email) {
-            if (currentRole !== 'SUPER ADMIN' || email === currentUser) return;
+            if (currentRole !== 'SUPER ADMIN' || email === currentEmail) return;
             if (!confirm(`Remove portal access for ${email}?`)) return;
             const message = document.getElementById('user-management-message');
             try {
@@ -958,6 +1024,35 @@
             } catch (error) {
                 message.textContent = error.message;
                 message.className = 'text-xs font-mono text-rose-300';
+            }
+        }
+
+        function updateAuthModeButton() {
+            const title = document.getElementById('auth-mode-title');
+            const description = document.getElementById('auth-mode-description');
+            if (currentAuthMode === 'local') {
+                title.innerHTML = '<i class="fa-solid fa-fingerprint mr-2 text-cyan-300"></i>Enable SSO';
+                description.textContent = 'Require Cloudflare Access for portal sign-in';
+            } else {
+                title.innerHTML = '<i class="fa-solid fa-key mr-2 text-amber-300"></i>Disable SSO';
+                description.textContent = 'Return sign-in to local accounts';
+            }
+        }
+
+        async function toggleAuthenticationMode() {
+            if (currentRole !== 'SUPER ADMIN') return;
+            const nextMode = currentAuthMode === 'local' ? 'sso' : 'local';
+            const prompt = nextMode === 'sso'
+                ? 'Enable Cloudflare Access SSO for all staff? Everyone will need an SSO email role assignment.'
+                : 'Disable SSO and return all staff to local username and password sign-in?';
+            if (!confirm(prompt)) return;
+            try {
+                await apiRequest('/api/admin/auth-mode', { method: 'POST', body: JSON.stringify({ mode: nextMode }) });
+                currentAuthMode = nextMode;
+                await checkSessionState();
+                if (nextMode === 'sso') await redirectToSso();
+            } catch (error) {
+                alert(error.message);
             }
         }
 
