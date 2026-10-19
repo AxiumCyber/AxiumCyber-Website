@@ -1,9 +1,9 @@
-const COOKIE_NAME = '__Host-axium_session';
-const SESSION_TTL_SECONDS = 60 * 60 * 8;
-const PASSWORD_ITERATIONS = 120000;
-const USERNAME_PATTERN = /^[a-z0-9._-]{3,24}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLES = ['SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff'];
 const encoder = new TextEncoder();
+let cachedAccessKeys = null;
+let cachedAccessDomain = null;
+let cachedAccessKeysExpiresAt = 0;
 
 function json(data, status = 200, headers = {}) {
     return new Response(JSON.stringify(data), {
@@ -12,39 +12,82 @@ function json(data, status = 200, headers = {}) {
     });
 }
 
-function cookieHeader(token, maxAge = SESSION_TTL_SECONDS) {
-    return `${COOKIE_NAME}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+function getAccessDomain(env) {
+    return typeof env.ACCESS_TEAM_DOMAIN === 'string'
+        ? env.ACCESS_TEAM_DOMAIN.trim().replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase()
+        : '';
 }
 
-function readCookie(request, name) {
-    const cookieHeaderValue = request.headers.get('Cookie') || '';
-    const match = cookieHeaderValue.split(';').map(part => part.trim()).find(part => part.startsWith(`${name}=`));
-    return match ? match.slice(name.length + 1) : null;
+function decodeBase64Url(value) {
+    const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+    return Uint8Array.from(atob(padded), character => character.charCodeAt(0));
 }
 
-function toBase64(bytes) {
-    return btoa(String.fromCharCode(...new Uint8Array(bytes)));
+function decodeJwtJson(value) {
+    return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
-function fromBase64(value) {
-    return Uint8Array.from(atob(value), character => character.charCodeAt(0));
+async function getAccessSigningKey(env, keyId) {
+    const domain = getAccessDomain(env);
+    if (!domain || typeof env.ACCESS_AUD !== 'string' || !env.ACCESS_AUD.trim()) {
+        throw Object.assign(new Error('Cloudflare Access is not configured. Set ACCESS_TEAM_DOMAIN and ACCESS_AUD.'), { status: 503 });
+    }
+    if (!cachedAccessKeys || cachedAccessDomain !== domain || cachedAccessKeysExpiresAt <= Date.now()) {
+        const response = await fetch(`https://${domain}/cdn-cgi/access/certs`);
+        if (!response.ok) throw Object.assign(new Error('Could not load Cloudflare Access signing keys.'), { status: 503 });
+        const certs = await response.json();
+        if (!Array.isArray(certs.keys)) throw Object.assign(new Error('Cloudflare Access returned an invalid signing-key set.'), { status: 503 });
+        cachedAccessKeys = certs.keys;
+        cachedAccessDomain = domain;
+        cachedAccessKeysExpiresAt = Date.now() + 5 * 60 * 1000;
+    }
+    const jwk = cachedAccessKeys.find(key => key.kid === keyId && key.kty === 'RSA' && key.use === 'sig');
+    if (!jwk) throw Object.assign(new Error('Cloudflare Access signing key was not found.'), { status: 401 });
+    return crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
 }
 
-async function sha256(value) {
-    return crypto.subtle.digest('SHA-256', encoder.encode(value));
-}
+async function getAccessIdentity(request, env) {
+    const token = request.headers.get('Cf-Access-Jwt-Assertion');
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) throw Object.assign(new Error('Invalid Cloudflare Access token.'), { status: 401 });
 
-async function hashPassword(password, salt = crypto.getRandomValues(new Uint8Array(16))) {
-    const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-    const hash = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PASSWORD_ITERATIONS }, key, 256);
-    return { salt: toBase64(salt), passwordHash: toBase64(hash) };
-}
+    let header;
+    let claims;
+    let signature;
+    try {
+        header = decodeJwtJson(parts[0]);
+        claims = decodeJwtJson(parts[1]);
+        signature = decodeBase64Url(parts[2]);
+    } catch {
+        throw Object.assign(new Error('Invalid Cloudflare Access token.'), { status: 401 });
+    }
+    if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
+        throw Object.assign(new Error('Unsupported Cloudflare Access token signature.'), { status: 401 });
+    }
 
-async function verifyPassword(password, account) {
-    const result = await hashPassword(password, fromBase64(account.salt));
-    const expected = fromBase64(account.passwordHash);
-    const actual = fromBase64(result.passwordHash);
-    return expected.length === actual.length && expected.reduce((difference, byte, index) => difference | (byte ^ actual[index]), 0) === 0;
+    const domain = getAccessDomain(env);
+    const key = await getAccessSigningKey(env, header.kid);
+    const signedContent = encoder.encode(`${parts[0]}.${parts[1]}`);
+    if (!await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, signedContent)) {
+        throw Object.assign(new Error('Cloudflare Access token signature is invalid.'), { status: 401 });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+    if (claims.iss !== `https://${domain}` || !audiences.includes(env.ACCESS_AUD.trim()) ||
+        !Number.isFinite(claims.exp) || claims.exp <= now ||
+        (Number.isFinite(claims.nbf) && claims.nbf > now) ||
+        (Number.isFinite(claims.iat) && claims.iat > now + 60)) {
+        throw Object.assign(new Error('Cloudflare Access token claims are invalid or expired.'), { status: 401 });
+    }
+
+    const email = typeof claims.email === 'string' ? claims.email.trim().toLowerCase() : '';
+    if (!EMAIL_PATTERN.test(email) || email.length > 254) {
+        throw Object.assign(new Error('Cloudflare Access token does not contain a valid email identity.'), { status: 401 });
+    }
+    return { email, name: typeof claims.name === 'string' ? claims.name : email };
 }
 
 async function readBody(request) {
@@ -53,42 +96,16 @@ async function readBody(request) {
     return text ? JSON.parse(text) : {};
 }
 
-function validUsername(value) {
-    return typeof value === 'string' && USERNAME_PATTERN.test(value.trim().toLowerCase());
-}
-
-function validPassword(value) {
-    return typeof value === 'string' && value.length >= 12 && value.length <= 128;
-}
-
-async function getAccount(env, username) {
-    if (!validUsername(username)) return null;
-    return env.AXIUM_KV.get(`user:${username.trim().toLowerCase()}`, 'json');
-}
-
-async function createSession(env, username) {
-    const token = toBase64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    const tokenHash = toBase64(await sha256(token));
-    const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
-    await env.AXIUM_KV.put(`session:${tokenHash}`, JSON.stringify({ username, expiresAt }), { expirationTtl: SESSION_TTL_SECONDS });
-    return token;
+async function getAccount(env, email) {
+    if (typeof email !== 'string' || !EMAIL_PATTERN.test(email) || email.length > 254) return null;
+    return env.AXIUM_KV.get(`user:${email.trim().toLowerCase()}`, 'json');
 }
 
 async function getSession(request, env) {
-    const token = readCookie(request, COOKIE_NAME);
-    if (!token) return null;
-    const tokenHash = toBase64(await sha256(token));
-    const session = await env.AXIUM_KV.get(`session:${tokenHash}`, 'json');
-    if (!session || session.expiresAt <= Date.now()) {
-        await env.AXIUM_KV.delete(`session:${tokenHash}`);
-        return null;
-    }
-    const account = await getAccount(env, session.username);
-    if (!account) {
-        await env.AXIUM_KV.delete(`session:${tokenHash}`);
-        return null;
-    }
-    return { username: account.username, role: account.role };
+    const identity = await getAccessIdentity(request, env);
+    if (!identity) return null;
+    const account = await getAccount(env, identity.email);
+    return account ? { ...account, username: account.email, identity } : null;
 }
 
 function requireRole(account, roles) {
@@ -158,58 +175,58 @@ async function requestHandler(request, env) {
     if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') assertSameOrigin(request);
     if (method === 'OPTIONS') return new Response(null, { status: 204, headers: { 'cache-control': 'no-store' } });
 
-    if (path === '/api/bootstrap' && method === 'GET') {
-        const initialized = await env.AXIUM_KV.get('system:initialized');
-        return json({ setupRequired: initialized !== 'true' });
+    if (path === '/api/config' && method === 'GET') {
+        const domain = getAccessDomain(env);
+        if (!domain || typeof env.ACCESS_AUD !== 'string' || !env.ACCESS_AUD.trim()) {
+            return json({ error: 'Cloudflare Access is not configured. Set ACCESS_TEAM_DOMAIN and ACCESS_AUD.' }, 503);
+        }
+        return json({
+            loginUrl: `https://${domain}/cdn-cgi/access/login/${encodeURIComponent(env.ACCESS_AUD.trim())}`,
+            logoutUrl: `https://${domain}/cdn-cgi/access/logout`
+        });
+    }
+
+    const identity = await getAccessIdentity(request, env);
+
+    if (path === '/api/session' && method === 'GET') {
+        const setupRequired = await env.AXIUM_KV.get('system:initialized') !== 'true';
+        const account = identity ? await getAccount(env, identity.email) : null;
+        const lockdown = await env.AXIUM_KV.get('system:lockdown') === 'true';
+        return json({
+            authenticated: Boolean(account),
+            ssoAuthenticated: Boolean(identity),
+            identityEmail: identity?.email || null,
+            identityName: identity?.name || null,
+            setupRequired,
+            ...(account ? { user: account.email, role: account.role, lockdown } : {})
+        });
     }
 
     if (path === '/api/bootstrap' && method === 'POST') {
+        if (!identity) return json({ error: 'Sign in through your Cloudflare Access identity provider first.' }, 401);
         if (!env.AXIUM_BOOTSTRAP_SECRET) return json({ error: 'Initial setup is disabled. Configure AXIUM_BOOTSTRAP_SECRET first.' }, 503);
         if (await env.AXIUM_KV.get('system:initialized') === 'true') return json({ error: 'Initial setup has already been completed.' }, 409);
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid setup request.' }, 400); }
         if (typeof body.setupSecret !== 'string' || body.setupSecret !== env.AXIUM_BOOTSTRAP_SECRET) return json({ error: 'Invalid setup key.' }, 401);
-        if (!validPassword(body.password)) return json({ error: 'Choose a password with 12 to 128 characters.' }, 400);
-        const password = await hashPassword(body.password);
-        const account = { username: 'admin', role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
-        await env.AXIUM_KV.put('user:admin', JSON.stringify(account));
+        if (!await env.AXIUM_KV.get('system:initialized') && await getAccount(env, identity.email)) {
+            return json({ error: 'This SSO identity already has a portal account.' }, 409);
+        }
+        const account = { email: identity.email, name: identity.name, role: 'SUPER ADMIN', createdAt: new Date().toISOString() };
+        await env.AXIUM_KV.put(`user:${identity.email}`, JSON.stringify(account));
         await env.AXIUM_KV.put('system:initialized', 'true');
         await writeAuditEvent(env, account, 'system.bootstrapped');
-        const token = await createSession(env, account.username);
-        return json({ authenticated: true, user: account.username, role: account.role, lockdown: false }, 201, { 'set-cookie': cookieHeader(token) });
+        return json({ authenticated: true, user: account.email, role: account.role, lockdown: false }, 201);
     }
 
-    if (path === '/api/session' && method === 'GET') {
-        const setupRequired = await env.AXIUM_KV.get('system:initialized') !== 'true';
-        const account = await getSession(request, env);
-        const lockdown = await env.AXIUM_KV.get('system:lockdown') === 'true';
-        return json(account ? { authenticated: true, user: account.username, role: account.role, lockdown } : { authenticated: false, setupRequired });
-    }
-
-    if (path === '/api/login' && method === 'POST') {
-        let body;
-        try { body = await readBody(request); } catch { return json({ error: 'Invalid login request.' }, 400); }
-        const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
-        const password = typeof body.password === 'string' ? body.password : '';
-        if (!validUsername(username) || !password) return json({ error: 'Invalid username or password.' }, 401);
-        const account = await getAccount(env, username);
-        if (!account || !await verifyPassword(password, account)) return json({ error: 'Invalid username or password.' }, 401);
-        const token = await createSession(env, account.username);
-        return json({ authenticated: true, user: account.username, role: account.role, lockdown: await env.AXIUM_KV.get('system:lockdown') === 'true' }, 200, { 'set-cookie': cookieHeader(token) });
-    }
-
-    if (path === '/api/logout' && method === 'POST') {
-        const token = readCookie(request, COOKIE_NAME);
-        if (token) await env.AXIUM_KV.delete(`session:${toBase64(await sha256(token))}`);
-        return json({ ok: true }, 200, { 'set-cookie': cookieHeader('', 0) });
-    }
-
-    const account = await getSession(request, env);
-    if (!account) return json({ error: 'Authentication required.' }, 401);
+    if (!identity) return json({ error: 'Sign in through Cloudflare Access to continue.' }, 401);
+    const account = await getAccount(env, identity.email);
+    if (!account) return json({ error: `SSO identity ${identity.email} is not assigned a portal role. Contact your Super Admin.` }, 403);
+    account.username = account.email;
 
     if (path === '/api/users' && method === 'GET') {
         if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
-        const users = (await listUsers(env)).map(user => ({ username: user.username, role: user.role, createdAt: user.createdAt }));
+        const users = (await listUsers(env)).map(user => ({ email: user.email, name: user.name, role: user.role, createdAt: user.createdAt }));
         return json({ users });
     }
 
@@ -217,27 +234,26 @@ async function requestHandler(request, env) {
         if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid account request.' }, 400); }
-        const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
-        if (!validUsername(username)) return json({ error: 'Username must be 3 to 24 characters using letters, numbers, dots, underscores, or hyphens.' }, 400);
-        if (!validPassword(body.password)) return json({ error: 'Password must be 12 to 128 characters.' }, 400);
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        if (!EMAIL_PATTERN.test(email) || email.length > 254) return json({ error: 'Enter a valid email address for the staff SSO identity.' }, 400);
         if (!ROLES.includes(body.role) || body.role === 'SUPER ADMIN') return json({ error: 'Choose a valid non-super-admin role.' }, 400);
-        if (await getAccount(env, username)) return json({ error: 'That username already exists.' }, 409);
-        const password = await hashPassword(body.password);
-        const user = { username, role: body.role, ...password, createdAt: new Date().toISOString() };
-        await env.AXIUM_KV.put(`user:${username}`, JSON.stringify(user));
-        await writeAuditEvent(env, account, 'user.created', { username, role: user.role });
-        return json({ user: { username, role: user.role, createdAt: user.createdAt } }, 201);
+        if (await getAccount(env, email)) return json({ error: 'That SSO email already has a portal role.' }, 409);
+        const user = { email, name: email, role: body.role, createdAt: new Date().toISOString() };
+        await env.AXIUM_KV.put(`user:${email}`, JSON.stringify(user));
+        await writeAuditEvent(env, account, 'user.created', { email, role: user.role });
+        return json({ user: { email, name: user.name, role: user.role, createdAt: user.createdAt } }, 201);
     }
 
-    const userMatch = path.match(/^\/api\/users\/([a-z0-9._-]+)$/);
+    const userMatch = path.match(/^\/api\/users\/([^/]+)$/);
     if (userMatch && method === 'DELETE') {
         if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
-        const username = decodeURIComponent(userMatch[1]);
-        const target = await getAccount(env, username);
+        let email;
+        try { email = decodeURIComponent(userMatch[1]).trim().toLowerCase(); } catch { return json({ error: 'Invalid email address.' }, 400); }
+        const target = await getAccount(env, email);
         if (!target) return json({ error: 'Account not found.' }, 404);
-        if (username === account.username || target.role === 'SUPER ADMIN') return json({ error: 'The active or protected Super Admin account cannot be deleted.' }, 400);
-        await env.AXIUM_KV.delete(`user:${username}`);
-        await writeAuditEvent(env, account, 'user.deleted', { username, role: target.role });
+        if (email === account.email || target.role === 'SUPER ADMIN') return json({ error: 'The active or protected Super Admin account cannot be deleted.' }, 400);
+        await env.AXIUM_KV.delete(`user:${email}`);
+        await writeAuditEvent(env, account, 'user.deleted', { email, role: target.role });
         return json({ ok: true });
     }
 

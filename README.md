@@ -1,23 +1,27 @@
 # Axium Cyber Website
 
-The Axium Cyber public website and staff portal. Cloudflare Workers serves the website and API. Cloudflare KV stores accounts, sessions, tickets, settings, and audit events.
+The Axium Cyber public website and staff portal. Cloudflare Access provides organization SSO, a Worker validates Access identity tokens and enforces roles, and KV stores staff role assignments, tickets, settings, and audit events.
 
-> Follow the steps in order. The only value you must edit in the project config is the KV namespace ID. Keep the bootstrap secret out of source files and chat messages.
+> Follow the steps in order. You will set the Access team domain, Access application audience, and KV namespace ID in `wrangler.jsonc`. Keep the bootstrap secret out of source files and chat messages.
 
 ## How It Fits Together
 
 ```mermaid
 flowchart LR
-		Browser[Staff browser] -->|Website files| Worker[Cloudflare Worker]
-		Browser -->|Same-origin API + secure session cookie| Worker
-		Worker -->|Accounts, sessions, tickets, audit events| KV[(Cloudflare KV)]
+		Browser[Staff browser] --> Access[Cloudflare Access]
+		Access --> IdP[Organization identity provider]
+		Access -->|Signed identity token| Worker[Cloudflare Worker]
+		Browser -->|Same-origin API + Access token| Worker
+		Worker -->|Email role assignments, tickets, audit events| KV[(Cloudflare KV)]
 ```
 
-The browser never reads or writes user records directly. The Worker checks the session and role before changing KV data.
+	The identity provider authenticates staff. Cloudflare Access issues a signed token, and the Worker validates its signature, issuer, audience, expiry, and email before looking up that email's role in KV. The browser never sends a password to this portal.
 
 ## Before You Start
 
 - A Cloudflare account with Workers enabled
+- A domain/hostname in Cloudflare for the portal (for example, `portal.example.com`)
+- A supported identity provider configured in Cloudflare Zero Trust (Google, Microsoft Entra ID, Okta, or another supported provider)
 - Node.js and npm installed
 - A terminal opened in this project directory
 - An internet connection (the site loads Tailwind CSS, Font Awesome, and Google Fonts from CDNs)
