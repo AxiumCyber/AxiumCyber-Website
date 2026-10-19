@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axium Cyber LLC | Elite Cyber Security & Asset Protection</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            dark: '#030712',
+                            card: '#0a0f1d',
+                            border: '#1e293b',
+                            cyan: '#00f3ff',
+                            gold: '#ffd700',
+                            magenta: '#ff007f',
+                            purple: '#9d00ff'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 15px rgba(0, 243, 255, 0.3)',
+                        'neon-gold': '0 0 15px rgba(255, 215, 0, 0.3)',
+                        'neon-magenta': '0 0 15px rgba(255, 0, 127, 0.3)',
+                        'neon-purple': '0 0 15px rgba(157, 0, 255, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; border: 1px solid rgba(0, 243, 255, 0.2); }
+        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+
+        .glass-panel {
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 243, 255, 0.15);
+        }
+        .glass-panel-gold {
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 215, 0, 0.25);
+        }
+        .scanline {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0, 243, 255, 0.05) 50%, rgba(0, 243, 255, 0.05));
+            background-size: 100% 4px;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-glow { animation: pulseGlow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-cyber-dark text-slate-100 min-h-screen flex flex-col scanline relative selection:bg-cyan-500 selection:text-black">
+
+    <!-- Canvas Background -->
+    <canvas id="cyber-canvas" class="fixed inset-0 pointer-events-none z-0 opacity-25"></canvas>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-cyan-500/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('public')">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyber-cyan/20 to-cyber-gold/20 border border-cyan-500/40 flex items-center justify-center shadow-neon-cyan relative group">
+                    <i class="fa-solid fa-ankh text-cyber-gold text-2xl group-hover:scale-110 transition-transform"></i>
+                    <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-cyber-cyan rounded-full animate-ping"></div>
+                </div>
+                <div>
+                    <span class="font-orbitron font-extrabold text-xl tracking-wider bg-gradient-to-r from-cyan-400 via-yellow-300 to-cyan-200 bg-clip-text text-transparent">AXIUM CYBER</span>
+                    <span class="block text-[10px] font-mono tracking-widest text-cyan-400 uppercase">LLC // Asset Protection & Forensics</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-8 font-orbitron text-sm">
+                <button onclick="switchTab('public')" id="nav-public" class="text-cyan-400 hover:text-white transition-colors flex items-center space-x-2 py-2 border-b-2 border-cyan-400">
+                    <i class="fa-solid fa-shield-halved"></i><span>Public HQ</span>
+                </button>
+                <button onclick="switchTab('portal')" id="nav-portal" class="text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent">
+                    <i class="fa-solid fa-terminal"></i><span>Staff & Admin Portal</span>
+                </button>
+            </nav>
+
+            <!-- Right Actions -->
+            <div class="flex items-center space-x-4">
+                <div id="auth-status-indicator" class="hidden items-center space-x-3 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700 text-xs font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="session-user-badge" class="text-cyan-300 font-bold">user</span>
+                    <span id="session-role-badge" class="px-2 py-0.5 rounded text-[10px] font-orbitron bg-purple-500/20 text-purple-300 border border-purple-500/30">ADMIN</span>
+                    <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 ml-2" title="Terminate Session"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+                <button onclick="switchTab('portal')" class="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold hover:bg-cyan-500/30 hover:shadow-neon-cyan transition-all">
+                    <i class="fa-solid fa-lock"></i><span>SECURE LOGIN</span>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden text-cyan-400 p-2"><i class="fa-solid fa-bars text-xl"></i></button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden glass-panel border-t border-cyan-500/20 px-4 py-4 space-y-3 font-orbitron text-sm">
+            <button onclick="switchTab('public'); toggleMobileMenu();" class="block w-full text-left py-2 text-cyan-400"><i class="fa-solid fa-shield-halved mr-2"></i>Public HQ</button>
+            <button onclick="switchTab('portal'); toggleMobileMenu();" class="block w-full text-left py-2 text-slate-300"><i class="fa-solid fa-terminal mr-2"></i>Staff & Admin Portal</button>
+        </div>
+    </header>
+
+    <!-- MAIN VIEW CONTAINER -->
+    <main class="flex-grow relative z-10">
+
+        <!-- ==================== PUBLIC HQ VIEW ==================== -->
+        <div id="view-public" class="space-y-20 pb-20">
+            
+            <!-- Hero Section -->
+            <section class="relative pt-20 pb-28 px-4 overflow-hidden">
+                <div class="absolute inset-0 bg-radial-gradient from-cyan-950/20 via-transparent to-transparent pointer-events-none"></div>
+                <div class="max-w-6xl mx-auto text-center relative z-10 space-y-8">
+                    <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-xs uppercase tracking-widest shadow-neon-cyan">
+                        <i class="fa-solid fa-eye text-cyber-gold"></i>
+                        <span>Divine Vigilance • Uncompromising Cyber Defense</span>
+                    </div>
+                    <h1 class="font-orbitron font-black text-4xl sm:text-6xl lg:text-7xl tracking-tight uppercase leading-none">
+                        Protecting People's Assets <br>
+                        <span class="bg-gradient-to-r from-cyber-cyan via-cyber-gold to-cyber-magenta bg-clip-text text-transparent">With Supreme Security</span>
+                    </h1>
+                    <p class="max-w-3xl mx-auto text-slate-300 text-lg sm:text-xl font-light leading-relaxed">
+                        Axium Cyber LLC merges ancient principles of fortification with state-of-the-art computer forensics and enterprise-grade threat mitigation. Safeguarding your digital vault against advanced adversaries.
+                    </p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                        <button onclick="scrollToSection('services')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-sm tracking-wider hover:shadow-neon-cyan transition-all transform hover:-translate-y-0.5">
+                            EXPLORE DEFENSES <i class="fa-solid fa-arrow-down ml-2"></i>
+                        </button>
+                        <button onclick="switchTab('portal')" class="w-full sm:w-auto px-8 py-4 rounded-xl glass-panel border border-cyan-500/40 text-cyan-300 font-orbitron font-bold text-sm tracking-wider hover:bg-cyan-500/10 transition-all">
+                            STAFF / CLIENT PORTAL <i class="fa-solid fa-terminal ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leadership & Founder Showcase -->
+            <section class="max-w-6xl mx-auto px-4">
+                <div class="glass-panel rounded-3xl p-8 sm:p-12 relative overflow-hidden border border-cyber-gold/30 shadow-neon-gold">
+                    <div class="absolute -right-20 -bottom-20 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+                        <div class="lg:col-span-4 flex flex-col items-center text-center">
+                            <div class="w-40 h-40 rounded-2xl bg-gradient-to-tr from-cyber-gold/30 via-cyan-500/20 to-purple-600/30 p-1 border-2 border-cyber-gold shadow-neon-gold relative mb-4">
+                                <div class="w-full h-full bg-slate-950 rounded-xl flex items-center justify-center overflow-hidden">
+                                    <i class="fa-solid fa-user-shield text-6xl text-cyber-gold"></i>
+                                </div>
+                                <div class="absolute bottom-2 right-2 px-2 py-0.5 bg-black/80 border border-cyber-gold text-[10px] font-mono text-cyber-gold rounded">PRINCIPAL</div>
+                            </div>
+                            <h3 class="font-orbitron font-bold text-2xl text-white">Joseph Baldwin</h3>
+                            <p class="text-cyan-400 font-mono text-xs tracking-widest mt-1">FOUNDER & CHIEF STRATEGIST</p>
+                        </div>
+                        <div class="lg:col-span-8 space-y-6">
+                            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                                <span>Dual Academic Pedigree</span>
+                            </div>
+                            <h2 class="font-orbitron font-extrabold text-3xl sm:text-4xl text-slate-100">
+                                Engineering Resilience Through Forensics & Business Strategy
+                            </h2>
+                            <p class="text-slate-300 leading-relaxed">
+                                Under the leadership of Joseph Baldwin, Axium Cyber LLC was founded on the principle that true asset protection requires both deep technical investigation capabilities and rigorous executive governance. 
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                                <div class="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/30 space-y-2">
+                                    <div class="flex items-center space-x-3 text-cyan-400 font-orbitron font-bold text-sm">
+                                        <i class="fa-solid fa-magnifying-glass-chart text-lg"></i>
+                                        <span>B.S. Computer Forensics</span>
+                                    </div>
+                                    <p class="text-slate-400 text-xs">Specialized in deep artifact recovery, memory dumping, network packet inspection, and attribution analysis.</p>
+                                </div>
+                                <div class="p-4 rounded-xl bg-slate-900/80 border border-cyber-gold/30 space-y-2">
+                                    <div class="flex items-center space-x-3 text-cyber-gold font-orbitron font-bold text-sm">
+                                        <i class="fa-solid fa-chart-line text-lg"></i>
+                                        <span>B.S. Business Administration</span>
+                                    </div>
+                                    <p class="text-slate-400 text-xs">Grounded in enterprise risk management, asset allocation, ROI security modeling, and corporate governance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Core Offerings / Services -->
+            <section id="services" class="max-w-6xl mx-auto px-4 space-y-12">
+                <div class="text-center space-y-3">
+                    <h2 class="font-orbitron font-extrabold text-3xl sm:text-4xl uppercase tracking-wider">
+                        Comprehensive <span class="text-cyan-400">Asset Shielding</span>
+                    </h2>
+                    <p class="text-slate-400 max-w-2xl mx-auto text-sm">Tailored defense pillars designed to safeguard high-value individuals, family offices, and enterprise infrastructure.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-panel p-8 rounded-2xl hover:border-cyan-400 transition-all group">
+                        <div class="w-14 h-14 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl mb-6 group-hover:scale-110 transition-transform shadow-neon-cyan">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
+                        <h3 class="font-orbitron font-bold text-xl mb-3 text-white">Digital Asset Fortification</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">Hardening decentralized wallets, cloud vaults, and proprietary data repositories against zero-day exploits and social engineering.</p>
+                    </div>
+                    <div class="glass-panel p-8 rounded-2xl hover:border-amber-400 transition-all group">
+                        <div class="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-cyber-gold text-2xl mb-6 group-hover:scale-110 transition-transform shadow-neon-gold">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </div>
+                        <h3 class="font-orbitron font-bold text-xl mb-3 text-white">Forensic Incident Response</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">Immediate 24/7 containment, root-cause isolation, and court-admissible evidence preservation led by forensics specialists.</p>
+                    </div>
+                    <div class="glass-panel p-8 rounded-2xl hover:border-magenta-400 transition-all group">
+                        <div class="w-14 h-14 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-cyber-magenta text-2xl mb-6 group-hover:scale-110 transition-transform shadow-neon-magenta">
+                            <i class="fa-solid fa-chess-knight"></i>
+                        </div>
+                        <h3 class="font-orbitron font-bold text-xl mb-3 text-white">Executive Risk Advisory</h3>
+                        <p class="text-slate-400 text-sm leading-relaxed">Executive protection consulting, adversary simulation, and strategic security budget planning aligned with business objectives.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interactive Asset Exposure Estimator -->
+            <section class="max-w-4xl mx-auto px-4">
+                <div class="glass-panel rounded-2xl p-8 border border-cyan-500/40 space-y-6 shadow-neon-cyan">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-calculator text-cyan-400 text-2xl"></i>
+                            <div>
+                                <h3 class="font-orbitron font-bold text-lg text-white">Asset Exposure & Risk Estimator</h3>
+                                <p class="text-xs text-slate-400 font-mono">Interactive vulnerability index calculation</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded text-xs font-mono text-cyan-400">LIVE TOOL</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <label class="block text-xs font-orbitron uppercase text-slate-300">Select Asset Scope Portfolio:</label>
+                            <select id="calc-scope" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 font-mono focus:border-cyan-400 outline-none">
+                                <option value="1">Personal / Family Office Vault ($1M - $10M)</option>
+                                <option value="2" selected>Small Enterprise / Tech Startup ($10M - $50M)</option>
+                                <option value="3">Corporate Enterprise & Holdings ($50M+)</option>
+                            </select>
+
+                            <label class="block text-xs font-orbitron uppercase text-slate-300">Current Security Posture:</label>
+                            <select id="calc-posture" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200 font-mono focus:border-cyan-400 outline-none">
+                                <option value="basic">Basic Firewall & Endpoint Protection</option>
+                                <option value="standard" selected>Multi-Factor & Regular Backups</option>
+                                <option value="advanced">Zero-Trust & 24/7 SOC Monitoring</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-slate-950/80 rounded-xl p-6 border border-slate-800 flex flex-col justify-between space-y-4">
+                            <div>
+                                <span class="text-xs font-mono text-slate-400">ESTIMATED RISK INDEX</span>
+                                <div id="calc-risk-score" class="font-orbitron font-black text-4xl text-amber-400 mt-1">68 / 100</div>
+                                <p id="calc-recommendation" class="text-xs text-slate-300 mt-2">Moderate exposure. Recommended deployment of Axium Multi-Layer Defense.</p>
+                            </div>
+                            <button onclick="calculateRisk()" class="w-full py-3 rounded-lg bg-cyan-500 text-black font-orbitron font-bold text-xs uppercase hover:bg-cyan-400 transition-colors shadow-neon-cyan">
+                                RECALCULATE VULNERABILITY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ==================== STAFF & ADMIN PORTAL VIEW ==================== -->
+        <div id="view-portal" class="hidden max-w-7xl mx-auto px-4 py-10 space-y-8">
+            
+            <!-- Login State / Gateway Modal Overlay inside Portal when logged out -->
+            <div id="portal-auth-container" class="max-w-md mx-auto pt-10">
+                <div class="glass-panel rounded-2xl p-8 border border-cyan-500/40 shadow-neon-cyan space-y-6">
+                    <div class="text-center space-y-2">
+                        <div class="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-3xl shadow-neon-cyan mb-2">
+                            <i class="fa-solid fa-fingerprint"></i>
+                        </div>
+                        <h2 class="font-orbitron font-bold text-2xl text-white">SECURE ACCESS GATEWAY</h2>
+                        <p class="text-xs text-slate-400 font-mono">Authenticate with credentials and role token</p>
+                    </div>
+
+                    <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-orbitron text-slate-300 mb-1">USERNAME / ID</label>
+                            <input type="text" id="login-user" required placeholder="e.g. admin, analyst, support" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-cyan-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-orbitron text-slate-300 mb-1">ACCESS PASSWORD</label>
+                            <input type="password" id="login-pass" required placeholder="••••••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-cyan-400 outline-none">
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-sm uppercase tracking-wider hover:shadow-neon-cyan transition-all">
+                            ESTABLISH SECURE SESSION
+                        </button>
+                    </form>
+
+                    <!-- Quick Preset Buttons -->
+                    <div class="border-t border-slate-800 pt-4 space-y-2">
+                        <span class="block text-[10px] font-mono text-slate-400 text-center uppercase tracking-widest">Quick Demo Credentials</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="fillCreds('admin', 'anubis2026')" class="p-2 rounded bg-slate-900 border border-purple-500/30 text-[11px] font-mono text-purple-300 hover:bg-purple-500/10 text-left">
+                                <span class="font-bold block">SUPER ADMIN</span>admin / anubis2026
+                            </button>
+                            <button type="button" onclick="fillCreds('analyst', 'cyber2026')" class="p-2 rounded bg-slate-900 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 hover:bg-cyan-500/10 text-left">
+                                <span class="font-bold block">ANALYST / TECH</span>analyst / cyber2026
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protected Workspace (Hidden until authenticated) -->
+            <div id="portal-workspace" class="hidden space-y-8">
+                
+                <!-- Portal Header Bar -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border border-cyan-500/30">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-xl shadow-neon-cyan">
+                            <i class="fa-solid fa-shield-cat"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-orbitron font-bold text-xl text-white">AXIUM COMMAND & CONTROL</h2>
+                            <p class="text-xs text-slate-400 font-mono">Secured Terminal Session Active • RBAC Enforced</p>
+                        </div>
+                    </div>
+                    <!-- Role Switcher & Status -->
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <span class="block text-[10px] font-mono text-slate-400">ACTIVE ROLE</span>
+                            <select id="active-role-selector" onchange="changeActiveRole(this.value)" class="bg-slate-900 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs rounded px-2 py-1 outline-none">
+                                <option value="SUPER ADMIN">SUPER ADMIN</option>
+                                <option value="Admin">Admin</option>
+                                <option value="Tech Support">Tech Support</option>
+                                <option value="Moderator">Moderator</option>
+                                <option value="Staff">Staff</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Super Admin Dedicated Control Panel -->
+                <div id="super-admin-panel" class="hidden glass-panel-gold rounded-2xl p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-amber-500/30 pb-3">
+                        <div class="flex items-center space-x-3 text-cyber-gold font-orbitron font-bold">
+                            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                            <span>SUPER ADMIN MASTER CONTROLS</span>
+                        </div>
+                        <span class="px-2.5 py-1 bg-amber-500/20 border border-amber-500/40 rounded text-[10px] font-mono text-amber-300 uppercase">RESTRICTED LEVEL 5</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <button onclick="toggleSystemLockdown()" id="lockdown-btn" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-left hover:border-amber-400 transition-all">
+                            <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-lock mr-2 text-amber-400"></i>System Lockdown</span>
+                            <span class="text-[11px] text-slate-400 font-mono">Halt all non-admin ticketing actions</span>
+                        </button>
+                        <button onclick="purgeResolvedTickets()" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-left hover:border-amber-400 transition-all">
+                            <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-broom mr-2 text-cyan-400"></i>Purge Resolved Queue</span>
+                            <span class="text-[11px] text-slate-400 font-mono">Clear closed ticket history from memory</span>
+                        </button>
+                        <button onclick="exportAuditLogs()" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-left hover:border-amber-400 transition-all">
+                            <span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-file-shield mr-2 text-purple-400"></i>Export Audit Trail</span>
+                            <span class="text-[11px] text-slate-400 font-mono">Download immutable security logs</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Security Telemetry & Quick Metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-5 rounded-xl border border-cyan-500/20">
+                        <div class="flex items-center justify-between text-slate-400 text-xs font-mono">
+                            <span>TOTAL OPEN TICKETS</span>
+                            <i class="fa-solid fa-ticket text-cyan-400"></i>
+                        </div>
+                        <div id="metric-open" class="font-orbitron font-bold text-2xl text-white mt-2">0</div>
+                        <div class="text-[10px] text-emerald-400 font-mono mt-1"><i class="fa-solid fa-arrow-up mr-1"></i>Live synchronization</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl border border-amber-500/20">
+                        <div class="flex items-center justify-between text-slate-400 text-xs font-mono">
+                            <span>CRITICAL PRIORITY</span>
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                        </div>
+                        <div id="metric-critical" class="font-orbitron font-bold text-2xl text-amber-400 mt-2">0</div>
+                        <div class="text-[10px] text-amber-300 font-mono mt-1">Requires immediate attention</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl border border-purple-500/20">
+                        <div class="flex items-center justify-between text-slate-400 text-xs font-mono">
+                            <span>ACTIVE THREAT LEVEL</span>
+                            <i class="fa-solid fa-radar text-purple-400"></i>
+                        </div>
+                        <div class="font-orbitron font-bold text-2xl text-purple-400 mt-2">SECURE</div>
+                        <div class="text-[10px] text-slate-400 font-mono mt-1">Zero anomalies detected</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-xl border border-emerald-500/20">
+                        <div class="flex items-center justify-between text-slate-400 text-xs font-mono">
+                            <span>SYSTEM INTEGRITY</span>
+                            <i class="fa-solid fa-shield-check text-emerald-400"></i>
+                        </div>
+                        <div class="font-orbitron font-bold text-2xl text-emerald-400 mt-2">100%</div>
+                        <div class="text-[10px] text-emerald-400 font-mono mt-1">All nodes operational</div>
+                    </div>
+                </div>
+
+                <!-- Cyber Security Tools Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Forensic IP / Hash Analyzer -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <h3 class="font-orbitron font-bold text-sm text-white flex items-center">
+                                <i class="fa-solid fa-magnifying-glass-chart text-cyan-400 mr-2"></i>Forensic Artifact Inspector
+                            </h3>
+                            <span class="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-mono">TOOL // V2.4</span>
+                        </div>
+                        <div class="space-y-3">
+                            <label class="block text-xs font-mono text-slate-300">Enter IP Address, Domain, or SHA256 Hash:</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="forensic-input" placeholder="e.g., 185.220.101.5 or hash..." class="flex-grow bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-slate-200 font-mono focus:border-cyan-400 outline-none">
+                                <button onclick="runForensicScan()" class="px-4 py-2 bg-cyan-500 text-black font-orbitron font-bold text-xs rounded-lg hover:bg-cyan-400 transition-colors">INSPECT</button>
+                            </div>
+                            <div id="forensic-output" class="hidden bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
+                                <div class="text-cyan-400 font-bold">// SCAN RESULTS:</div>
+                                <div id="forensic-result-text" class="text-slate-400"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vulnerability Scanner Terminal -->
+                    <div class="glass-panel p-6 rounded-2xl space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <h3 class="font-orbitron font-bold text-sm text-white flex items-center">
+                                <i class="fa-solid fa-terminal text-cyber-gold mr-2"></i>Terminal Vulnerability Scanner
+                            </h3>
+                            <span class="px-2 py-0.5 rounded bg-amber-500/10 text-cyber-gold text-[10px] font-mono">SOC // ACTIVE</span>
+                        </div>
+                        <div class="bg-slate-950 rounded-xl p-4 border border-slate-800 font-mono text-xs space-y-2 h-44 overflow-y-auto" id="terminal-log">
+                            <div class="text-slate-500">[02:00:01] Axium Secure Shell initialized...</div>
+                            <div class="text-cyan-400">[02:00:02] Connected to encrypted telemetry daemon.</div>
+                            <div class="text-emerald-400">[02:00:03] Firewall rules synchronized. Ready for queries.</div>
+                        </div>
+                        <button onclick="runQuickDiagnostic()" class="w-full py-2.5 rounded-lg bg-slate-900 border border-cyan-500/40 text-cyan-300 font-orbitron text-xs font-bold hover:bg-cyan-500/10 transition-colors">
+                            EXECUTE QUICK DIAGNOSTIC
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUPPORT TICKETING SYSTEM -->
+                <div class="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+                        <div>
+                            <h3 class="font-orbitron font-bold text-xl text-white flex items-center">
+                                <i class="fa-solid fa-ticket text-cyan-400 mr-3"></i>Support & Incident Ticketing
+                            </h3>
+                            <p class="text-xs text-slate-400 font-mono mt-0.5">Manage support inquiries, incident triage, and escalation paths</p>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="openNewTicketModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-orbitron font-bold text-xs uppercase tracking-wider hover:shadow-neon-cyan transition-all flex items-center space-x-2">
+                                <i class="fa-solid fa-plus"></i><span>NEW TICKET</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters and Search -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center space-x-2 w-full sm:w-auto">
+                            <input type="text" id="ticket-search" oninput="renderTickets()" placeholder="Search tickets..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono w-full sm:w-64 focus:border-cyan-400 outline-none">
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 font-orbitron text-xs">
+                            <button onclick="setTicketFilter('ALL')" id="filter-all" class="px-3 py-1.5 rounded bg-cyan-500 text-black font-bold">ALL</button>
+                            <button onclick="setTicketFilter('OPEN')" id="filter-open" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 hover:text-white">OPEN</button>
+                            <button onclick="setTicketFilter('IN_PROGRESS')" id="filter-inprogress" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 hover:text-white">IN PROGRESS</button>
+                            <button onclick="setTicketFilter('RESOLVED')" id="filter-resolved" class="px-3 py-1.5 rounded bg-slate-900 text-slate-400 hover:text-white">RESOLVED</button>
+                        </div>
+                    </div>
+
+                    <!-- Tickets Table -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-[11px] font-orbitron text-slate-400">
+                                    <th class="py-3 px-4">TICKET ID</th>
+                                    <th class="py-3 px-4">SUBJECT / ASSET</th>
+                                    <th class="py-3 px-4">AUTHOR / ROLE</th>
+                                    <th class="py-3 px-4">PRIORITY</th>
+                                    <th class="py-3 px-4">STATUS</th>
+                                    <th class="py-3 px-4 text-right">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tickets-table-body" class="font-mono text-xs divide-y divide-slate-800/60">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- New Ticket Modal -->
+    <div id="modal-new-ticket" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 space-y-6 border border-cyan-500/40 shadow-neon-cyan">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-orbitron font-bold text-lg text-white flex items-center">
+                    <i class="fa-solid fa-circle-plus text-cyan-400 mr-2"></i>Create New Support Ticket
+                </h3>
+                <button onclick="closeNewTicketModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="new-ticket-form" onsubmit="handleCreateTicket(event)" class="space-y-4 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-300 font-orbitron mb-1">TICKET SUBJECT / TITLE</label>
+                    <input type="text" id="ticket-title" required placeholder="e.g., Unauthorized Login Attempt on Vault Node #4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-slate-300 font-orbitron mb-1">PRIORITY LEVEL</label>
+                        <select id="ticket-priority" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-orbitron mb-1">ASSET CATEGORY</label>
+                        <select id="ticket-category" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none">
+                            <option value="Digital Vault">Digital Vault</option>
+                            <option value="Forensic Analysis">Forensic Analysis</option>
+                            <option value="Network Security">Network Security</option>
+                            <option value="Executive Advisory">Executive Advisory</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-orbitron mb-1">DESCRIPTION & DETAILS</label>
+                    <textarea id="ticket-desc" rows="4" required placeholder="Describe the incident or support request in detail..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-200 focus:border-cyan-400 outline-none"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeNewTicketModal()" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 font-orbitron hover:bg-slate-700">CANCEL</button>
+                    <button type="submit" class="px-6 py-2 rounded-lg bg-cyan-500 text-black font-orbitron font-bold hover:bg-cyan-400 shadow-neon-cyan">SUBMIT TICKET</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ticket Detail Modal -->
+    <div id="modal-ticket-detail" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl p-6 space-y-6 border border-cyan-500/40 shadow-neon-cyan">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-3">
+                    <span id="detail-id" class="px-2.5 py-1 bg-cyan-500/20 text-cyan-400 font-mono text-xs rounded border border-cyan-500/30">#AX-101</span>
+                    <h3 id="detail-title" class="font-orbitron font-bold text-lg text-white">Ticket Title</h3>
+                </div>
+                <button onclick="closeTicketDetailModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-4 font-mono text-xs">
+                <div class="grid grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div>
+                        <span class="text-slate-500 block">AUTHOR / ROLE</span>
+                        <span id="detail-author" class="text-slate-200 font-bold">Admin</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">PRIORITY</span>
+                        <span id="detail-priority" class="text-amber-400 font-bold">High</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">STATUS</span>
+                        <span id="detail-status" class="text-cyan-400 font-bold">OPEN</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <span class="text-slate-400 font-orbitron text-[11px]">INCIDENT DESCRIPTION</span>
+                    <p id="detail-desc" class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-slate-300 leading-relaxed"></p>
+                </div>
+
+                <!-- Internal Notes / Activity Log -->
+                <div class="space-y-2">
+                    <span class="text-slate-400 font-orbitron text-[11px]">STAFF & ADMIN NOTES</span>
+                    <div id="detail-notes" class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 max-h-32 overflow-y-auto">
+                        <!-- Notes populated -->
+                    </div>
+                    <div class="flex space-x-2 pt-2">
+                        <input type="text" id="new-note-input" placeholder="Add internal staff note..." class="flex-grow bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 outline-none focus:border-cyan-400">
+                        <button onclick="addTicketNote()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 font-orbitron font-bold rounded-lg">ADD NOTE</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-slate-800">
+                    <div class="flex space-x-2">
+                        <button onclick="updateTicketStatus('IN_PROGRESS')" class="px-3 py-1.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 font-orbitron text-[11px]">MARK IN PROGRESS</button>
+                        <button onclick="updateTicketStatus('RESOLVED')" class="px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 font-orbitron text-[11px]">RESOLVED</button>
+                    </div>
+                    <button id="btn-delete-ticket" onclick="deleteCurrentTicket()" class="px-3 py-1.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 font-orbitron text-[11px]">DELETE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="glass-panel border-t border-cyan-500/20 py-10 mt-20 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyber-gold shadow-neon-cyan">
+                    <i class="fa-solid fa-ankh"></i>
+                </div>
+                <div>
+                    <span class="font-orbitron font-bold tracking-wider text-white">AXIUM CYBER LLC</span>
+                    <span class="block text-[10px] font-mono text-slate-400">&copy; 2026 Joseph Baldwin. All Rights Reserved.</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6 text-xs font-mono text-slate-400">
+                <span class="flex items-center"><i class="fa-solid fa-shield-halved text-cyan-400 mr-2"></i>B.S. Computer Forensics & Business Admin</span>
+                <span>// Secure Cloudflare Hosting</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- Canvas Matrix/Cyber Particle Animation ---
+        const canvas = document.getElementById('cyber-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = Array.from({ length: 40 }, () => ({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: Math.random() * 2 + 1,
+            speedY: Math.random() * 0.5 + 0.2,
+            opacity: Math.random() * 0.5 + 0.1
+        }));
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.6)';
+            particles.forEach(p => {
+                ctx.globalAlpha = p.opacity;
+                ctx.fillRect(p.x, p.y, p.size, p.size * 5);
+                p.y += p.speedY;
+                if (p.y > height) p.y = 0;
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+        animateCanvas();
+
+        // --- Application State ---
+        let currentTab = 'public';
+        let currentUser = null;
+        let currentRole = 'Staff';
+        let isLockedDown = false;
+        let currentFilter = 'ALL';
+        let activeTicketId = null;
+
+        // Default initial tickets if localStorage is empty
+        const defaultTickets = [
+            {
+                id: 'AX-301',
+                title: 'Suspicious outbound DNS tunneling detected on Node-04',
+                category: 'Network Security',
+                priority: 'Critical',
+                status: 'OPEN',
+                author: 'analyst',
+                role: 'Tech Support',
+                date: '2026-10-19 14:00',
+                notes: ['[02:05] Initial triage completed by analyst.', '[02:12] IP isolated from primary subnet.']
+            },
+            {
+                id: 'AX-302',
+                title: 'Quarterly compliance audit and asset valuation verification',
+                category: 'Executive Advisory',
+                priority: 'Medium',
+                status: 'IN_PROGRESS',
+                author: 'admin',
+                role: 'Admin',
+                date: '2026-10-18 09:30',
+                notes: ['[Oct 18] Audit logs requested from cloud gateway.']
+            }
+        ];
+
+        function getStoredTickets() {
+            const data = localStorage.getItem('axium_tickets');
+            if (!data) {
+                localStorage.setItem('axium_tickets', JSON.stringify(defaultTickets));
+                return defaultTickets;
+            }
+            return JSON.parse(data);
+        }
+
+        function saveTickets(tickets) {
+            localStorage.setItem('axium_tickets', JSON.stringify(tickets));
+        }
+
+        // --- Tab Navigation ---
+        function switchTab(tabId) {
+            currentTab = tabId;
+            const pubView = document.getElementById('view-public');
+            const portalView = document.getElementById('view-portal');
+            const navPub = document.getElementById('nav-public');
+            const navPortal = document.getElementById('nav-portal');
+
+            if (tabId === 'public') {
+                pubView.classList.remove('hidden');
+                portalView.classList.add('hidden');
+                navPub.className = "text-cyan-400 hover:text-white transition-colors flex items-center space-x-2 py-2 border-b-2 border-cyan-400";
+                navPortal.className = "text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent";
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                pubView.classList.add('hidden');
+                portalView.classList.remove('hidden');
+                navPortal.className = "text-cyan-400 hover:text-white transition-colors flex items-center space-x-2 py-2 border-b-2 border-cyan-400";
+                navPub.className = "text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent";
+                checkSessionState();
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- Risk Estimator ---
+        function calculateRisk() {
+            const scope = document.getElementById('calc-scope').value;
+            const posture = document.getElementById('calc-posture').value;
+            let score = 50;
+            if (scope === '1') score -= 10;
+            if (scope === '2') score += 15;
+            if (scope === '3') score += 30;
+
+            if (posture === 'basic') score += 25;
+            if (posture === 'standard') score -= 5;
+            if (posture === 'advanced') score -= 30;
+
+            score = Math.max(10, Math.min(95, score));
+            document.getElementById('calc-risk-score').innerText = score + ' / 100';
+            
+            const rec = document.getElementById('calc-recommendation');
+            if (score > 70) {
+                rec.innerText = "High exposure vulnerability index! Immediate deployment of Axium Zero-Trust shielding recommended.";
+                rec.className = "text-xs text-rose-400 mt-2 font-bold";
+            } else if (score > 40) {
+                rec.innerText = "Moderate exposure. Recommended deployment of Axium Multi-Layer Forensic Defense.";
+                rec.className = "text-xs text-amber-400 mt-2";
+            } else {
+                rec.innerText = "Solid security posture. Maintain continuous monitoring with Axium SOC oversight.";
+                rec.className = "text-xs text-emerald-400 mt-2";
+            }
+        }
+
+        // --- Authentication & RBAC ---
+        function fillCreds(user, pass) {
+            document.getElementById('login-user').value = user;
+            document.getElementById('login-pass').value = pass;
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value.trim().toLowerCase();
+            const pass = document.getElementById('login-pass').value;
+
+            // Simple validation simulation based on requested presets
+            if ((user === 'admin' && pass === 'anubis2026') || (user === 'superadmin')) {
+                currentUser = user;
+                currentRole = 'SUPER ADMIN';
+            } else if (user === 'analyst' && pass === 'cyber2026') {
+                currentUser = user;
+                currentRole = 'Tech Support';
+            } else {
+                currentUser = user;
+                currentRole = 'Staff';
+            }
+
+            localStorage.setItem('axium_session', JSON.stringify({ user: currentUser, role: currentRole }));
+            checkSessionState();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('axium_session');
+            currentUser = null;
+            currentRole = 'Staff';
+            checkSessionState();
+        }
+
+        function checkSessionState() {
+            const saved = localStorage.getItem('axium_session');
+            const authContainer = document.getElementById('portal-auth-container');
+            const workspace = document.getElementById('portal-workspace');
+            const statusIndicator = document.getElementById('auth-status-indicator');
+
+            if (saved) {
+                const session = JSON.parse(saved);
+                currentUser = session.user;
+                currentRole = session.role;
+
+                authContainer.classList.add('hidden');
+                workspace.classList.remove('hidden');
+                statusIndicator.classList.remove('hidden');
+                statusIndicator.classList.add('flex');
+
+                document.getElementById('session-user-badge').innerText = currentUser;
+                const roleBadge = document.getElementById('session-role-badge');
+                roleBadge.innerText = currentRole;
+                document.getElementById('active-role-selector').value = currentRole;
+
+                // Configure Super Admin Panel visibility
+                const superPanel = document.getElementById('super-admin-panel');
+                if (currentRole === 'SUPER ADMIN') {
+                    superPanel.classList.remove('hidden');
+                } else {
+                    superPanel.classList.add('hidden');
+                }
+
+                renderTickets();
+                updateMetrics();
+            } else {
+                authContainer.classList.remove('hidden');
+                workspace.classList.add('hidden');
+                statusIndicator.classList.add('hidden');
+                statusIndicator.classList.remove('flex');
+            }
+        }
+
+        function changeActiveRole(newRole) {
+            currentRole = newRole;
+            const session = JSON.parse(localStorage.getItem('axium_session') || '{}');
+            session.role = currentRole;
+            localStorage.setItem('axium_session', JSON.stringify(session));
+            document.getElementById('session-role-badge').innerText = currentRole;
+
+            const superPanel = document.getElementById('super-admin-panel');
+            if (currentRole === 'SUPER ADMIN') {
+                superPanel.classList.remove('hidden');
+            } else {
+                superPanel.classList.add('hidden');
+            }
+            renderTickets();
+        }
+
+        // --- Super Admin Controls ---
+        function toggleSystemLockdown() {
+            if (currentRole !== 'SUPER ADMIN') {
+                alert('ACCESS DENIED: Requires SUPER ADMIN privilege.');
+                return;
+            }
+            isLockedDown = !isLockedDown;
+            const btn = document.getElementById('lockdown-btn');
+            if (isLockedDown) {
+                btn.className = "p-3 rounded-xl bg-rose-950/80 border border-rose-500 text-left";
+                btn.innerHTML = `<span class="block text-xs font-orbitron font-bold text-rose-300 mb-1"><i class="fa-solid fa-lock text-rose-400 mr-2"></i>LOCKDOWN ACTIVE</span><span class="text-[11px] text-rose-400 font-mono">System restricted by Super Admin</span>`;
+                alert('WARNING: Emergency System Lockdown engaged. Non-admin ticketing actions suspended.');
+            } else {
+                btn.className = "p-3 rounded-xl bg-slate-900 border border-slate-700 text-left hover:border-amber-400 transition-all";
+                btn.innerHTML = `<span class="block text-xs font-orbitron font-bold text-white mb-1"><i class="fa-solid fa-lock mr-2 text-amber-400"></i>System Lockdown</span><span class="text-[11px] text-slate-400 font-mono">Halt all non-admin ticketing actions</span>`;
+                alert('System Lockdown disengaged.');
+            }
+        }
+
+        function purgeResolvedTickets() {
+            if (currentRole !== 'SUPER ADMIN') {
+                alert('ACCESS DENIED: Requires SUPER ADMIN privilege.');
+                return;
+            }
+            if (confirm('Are you sure you want to purge all resolved tickets from memory?')) {
+                let tickets = getStoredTickets();
+                tickets = tickets.filter(t => t.status !== 'RESOLVED');
+                saveTickets(tickets);
+                renderTickets();
+                updateMetrics();
+                alert('Resolved ticket history successfully purged.');
+            }
+        }
+
+        function exportAuditLogs() {
+            if (currentRole !== 'SUPER ADMIN' && currentRole !== 'Admin') {
+                alert('ACCESS DENIED: Insufficient clearance level.');
+                return;
+            }
+            const logs = {
+                timestamp: new Date().toISOString(),
+                exportedBy: currentUser,
+                role: currentRole,
+                systemIntegrity: '100%',
+                ticketsCount: getStoredTickets().length,
+                status: 'SECURE'
+            };
+            const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `axium_audit_log_${Date.now()}.json`;
+            a.click();
+        }
+
+        // --- Security Tools ---
+        function runForensicScan() {
+            const val = document.getElementById('forensic-input').value.trim();
+            const output = document.getElementById('forensic-output');
+            const resultText = document.getElementById('forensic-result-text');
+            if (!val) {
+                alert('Please enter an IP, domain, or hash to inspect.');
+                return;
+            }
+            output.classList.remove('hidden');
+            resultText.innerHTML = `Analyzing artifact: <span class="text-cyan-400">${val}</span>...<br>` +
+                `[+] Threat Intelligence DB Lookup: Clean<br>` +
+                `[+] GeoIP Attribution: Autonomous System AS13335 (Encrypted Relay)<br>` +
+                `[+] Malware Signatures: 0/64 detections.<br>` +
+                `<span class="text-emerald-400">[SUCCESS] Artifact verified safe by Axium Forensics engine.</span>`;
+        }
+
+        function runQuickDiagnostic() {
+            const log = document.getElementById('terminal-log');
+            const time = new Date().toLocaleTimeString();
+            log.innerHTML += `<div class="text-amber-400">[${time}] Running diagnostic probe across cluster nodes...</div>`;
+            setTimeout(() => {
+                log.innerHTML += `<div class="text-emerald-400">[${time}] Node-01 to Node-08 verified secure. Latency: 14ms.</div>`;
+                log.scrollTop = log.scrollHeight;
+            }, 800);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // --- Ticketing System ---
+        function setTicketFilter(filter) {
+            currentFilter = filter;
+            ['all', 'open', 'inprogress', 'resolved'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                if (btn) btn.className = "px-3 py-1.5 rounded bg-slate-900 text-slate-400 hover:text-white";
+            });
+            const activeBtn = document.getElementById(`filter-${filter.toLowerCase().replace('_','')}`);
+            if (activeBtn) activeBtn.className = "px-3 py-1.5 rounded bg-cyan-500 text-black font-bold";
+            renderTickets();
+        }
+
+        function renderTickets() {
+            const tbody = document.getElementById('tickets-table-body');
+            const search = document.getElementById('ticket-search').value.toLowerCase();
+            const tickets = getStoredTickets();
+
+            tbody.innerHTML = '';
+            const filtered = tickets.filter(t => {
+                const matchesSearch = t.title.toLowerCase().includes(search) || t.id.toLowerCase().includes(search);
+                const matchesFilter = currentFilter === 'ALL' || t.status === currentFilter;
+                return matchesSearch && matchesFilter;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No support tickets found matching criteria.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(t => {
+                let statusColor = 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30';
+                if (t.status === 'IN_PROGRESS') statusColor = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+                if (t.status === 'RESOLVED') statusColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+
+                let priorityColor = 'text-slate-300';
+                if (t.priority === 'Critical') priorityColor = 'text-rose-400 font-bold';
+                if (t.priority === 'High') priorityColor = 'text-amber-400';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-900/60 transition-colors">
+                        <td class="py-3 px-4 font-bold text-cyan-400">${t.id}</td>
+                        <td class="py-3 px-4 text-slate-200">
+                            <span class="block">${t.title}</span>
+                            <span class="text-[10px] text-slate-500">${t.category}</span>
+                        </td>
+                        <td class="py-3 px-4 text-slate-300">${t.author} <span class="text-[10px] text-slate-500">(${t.role})</span></td>
+                        <td class="py-3 px-4 ${priorityColor}">${t.priority}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2 py-0.5 rounded border text-[10px] ${statusColor}">${t.status}</span>
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="openTicketDetail('${t.id}')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded font-orbitron text-[10px]">VIEW</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            updateMetrics();
+        }
+
+        function updateMetrics() {
+            const tickets = getStoredTickets();
+            const openCount = tickets.filter(t => t.status !== 'RESOLVED').length;
+            const criticalCount = tickets.filter(t => t.priority === 'Critical' && t.status !== 'RESOLVED').length;
+
+            document.getElementById('metric-open').innerText = openCount;
+            document.getElementById('metric-critical').innerText = criticalCount;
+        }
+
+        function openNewTicketModal() {
+            if (isLockedDown && currentRole !== 'SUPER ADMIN' && currentRole !== 'Admin') {
+                alert('ACCESS DENIED: System is currently under Emergency Lockdown.');
+                return;
+            }
+            document.getElementById('modal-new-ticket').classList.remove('hidden');
+            document.getElementById('modal-new-ticket').classList.add('flex');
+        }
+
+        function closeNewTicketModal() {
+            document.getElementById('modal-new-ticket').classList.add('hidden');
+            document.getElementById('modal-new-ticket').classList.remove('flex');
+        }
+
+        function handleCreateTicket(e) {
+            e.preventDefault();
+            const title = document.getElementById('ticket-title').value;
+            const priority = document.getElementById('ticket-priority').value;
+            const category = document.getElementById('ticket-category').value;
+            const desc = document.getElementById('ticket-desc').value;
+
+            const tickets = getStoredTickets();
+            const newId = 'AX-' + Math.floor(100 + Math.random() * 900);
+
+            const newTicket = {
+                id: newId,
+                title,
+                category,
+                priority,
+                status: 'OPEN',
+                author: currentUser || 'staff_member',
+                role: currentRole,
+                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                notes: [`[${new Date().toLocaleTimeString()}] Ticket created by ${currentUser} (${currentRole}).`]
+            };
+
+            tickets.unshift(newTicket);
+            saveTickets(tickets);
+            closeNewTicketModal();
+            document.getElementById('new-ticket-form').reset();
+            renderTickets();
+        }
+
+        function openTicketDetail(id) {
+            activeTicketId = id;
+            const tickets = getStoredTickets();
+            const t = tickets.find(x => x.id === id);
+            if (!t) return;
+
+            document.getElementById('detail-id').innerText = t.id;
+            document.getElementById('detail-title').innerText = t.title;
+            document.getElementById('detail-author').innerText = `${t.author} (${t.role})`;
+            document.getElementById('detail-priority').innerText = t.priority;
+            document.getElementById('detail-status').innerText = t.status;
+            document.getElementById('detail-desc').innerText = t.desc || 'No detailed description provided.';
+
+            const notesContainer = document.getElementById('detail-notes');
+            notesContainer.innerHTML = '';
+            if (t.notes && t.notes.length > 0) {
+                t.notes.forEach(n => {
+                    notesContainer.innerHTML += `<div class="text-slate-300 border-l-2 border-cyan-500 pl-2 py-0.5">${n}</div>`;
+                });
+            } else {
+                notesContainer.innerHTML = `<div class="text-slate-500">No internal notes logged.</div>`;
+            }
+
+            document.getElementById('modal-ticket-detail').classList.remove('hidden');
+            document.getElementById('modal-ticket-detail').classList.add('flex');
+        }
+
+        function closeTicketDetailModal() {
+            document.getElementById('modal-ticket-detail').classList.add('hidden');
+            document.getElementById('modal-ticket-detail').classList.remove('flex');
+            activeTicketId = null;
+        }
+
+        function addTicketNote() {
+            const input = document.getElementById('new-note-input');
+            const noteText = input.value.trim();
+            if (!noteText || !activeTicketId) return;
+
+            const tickets = getStoredTickets();
+            const t = tickets.find(x => x.id === activeTicketId);
+            if (t) {
+                if (!t.notes) t.notes = [];
+                t.notes.push(`[${new Date().toLocaleTimeString()}] ${currentUser} (${currentRole}): ${noteText}`);
+                saveTickets(tickets);
+                input.value = '';
+                openTicketDetail(activeTicketId);
+                renderTickets();
+            }
+        }
+
+        function updateTicketStatus(newStatus) {
+            if (!activeTicketId) return;
+            const tickets = getStoredTickets();
+            const t = tickets.find(x => x.id === activeTicketId);
+            if (t) {
+                t.status = newStatus;
+                if (!t.notes) t.notes = [];
+                t.notes.push(`[${new Date().toLocaleTimeString()}] Status changed to ${newStatus} by ${currentUser}.`);
+                saveTickets(tickets);
+                openTicketDetail(activeTicketId);
+                renderTickets();
+            }
+        }
+
+        function deleteCurrentTicket() {
+            if (currentRole !== 'SUPER ADMIN' && currentRole !== 'Admin') {
+                alert('ACCESS DENIED: Deleting tickets requires Admin or Super Admin role.');
+                return;
+            }
+            if (!activeTicketId) return;
+            if (confirm(`Are you sure you want to delete ticket ${activeTicketId}?`)) {
+                let tickets = getStoredTickets();
+                tickets = tickets.filter(x => x.id !== activeTicketId);
+                saveTickets(tickets);
+                closeTicketDetailModal();
+                renderTickets();
+            }
+        }
+
+        // Initialize session check on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSessionState();
+            calculateRisk();
+        });
+    </script>
+</body>
+</html>
