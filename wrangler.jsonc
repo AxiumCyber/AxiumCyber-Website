@@ -3,6 +3,12 @@
   "name": "axiumcyber-website",
   "main": "worker.mjs",
   "compatibility_date": "2026-10-19",
+  "routes": [
+    {
+      "pattern": "axiumcyber.com",
+      "custom_domain": true
+    }
+  ],
   "vars": {
     "ACCESS_TEAM_DOMAIN": "REPLACE_WITH_TEAM.cloudflareaccess.com",
     "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD"
