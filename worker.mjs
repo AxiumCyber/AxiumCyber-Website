@@ -517,7 +517,7 @@ async function requestHandler(request, env) {
         await env.AXIUM_KV.put('system:initialized', 'true');
         await writeAuditEvent(env, account, 'system.bootstrapped');
         const session = await createSession(env, account, 'local');
-        return json({ authenticated: true, authMode: 'local', user: username, email, role: account.role }, 201, { 'set-cookie': session.cookie });
+        return json({ authenticated: true, authMode: 'local', user: username, email: account.email, role: account.role }, 201, { 'set-cookie': session.cookie });
     }
 
     if (path === '/api/login' && method === 'POST') {
