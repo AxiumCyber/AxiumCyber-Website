@@ -1,6 +1,6 @@
 # Axium Cyber Website
 
-The Axium Cyber public website and staff portal. Local username/password authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
+The Axium Cyber public website and staff portal. Local username/password. authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
 
 > This guide uses the Cloudflare dashboard only. No Wrangler, PowerShell, or terminal commands are required. Keep the bootstrap secret out of source files and chat messages.
 
