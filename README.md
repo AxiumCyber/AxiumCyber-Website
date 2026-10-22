@@ -140,15 +140,14 @@ Open `https://portal.example.com` (replace this with your hostname). Local authe
 
 ```mermaid
 flowchart LR
-    A[Initial setup form] --> B[Choose username and email]
+    A[Initial setup form] --> B[Choose username]
     A --> C[Choose local password]
     B --> E[Create local Super Admin]
     C --> E
-    D --> E
     E --> F[Local sign-in and dashboard]
 ```
 
-Enter the administrator's username, SSO email, and a strong local password with at least 12 characters. Click **CREATE SUPER ADMIN**. This creates the first KV account and signs you in, and disables bootstrap for subsequent visitors. Keep the `AXIUM_KV` binding and namespace; they contain live portal data.
+Enter the administrator's username and a strong local password with at least 12 characters. Click **CREATE SUPER ADMIN**. This creates the first KV account and signs you in, and disables bootstrap for subsequent visitors. The initial Super Admin is local-only; SSO cannot be enabled until the account has an SSO email identity. Keep the `AXIUM_KV` binding and namespace; they contain live portal data.
 
 ## Step 8: Assign Staff Roles
 
@@ -158,7 +157,7 @@ The old browser-only demo accounts (`admin` / `anubis2026` and `analyst` / `cybe
 
 ## Step 9: Turn SSO On Or Off
 
-Before turning SSO on, make sure the Access app protects only `/api/sso/callback`, its Allow policy includes the staff identities, and the Worker has `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` set. Sign in as Super Admin and use **Enable SSO** in **Super Admin Master Controls**. The current session ends and the portal redirects to Cloudflare Access. Staff then sign in with their IdP account; the Access email must match the email on their portal account.
+Before turning SSO on, make sure the Access app protects only `/api/sso/callback`, its Allow policy includes the staff identities, the Super Admin account has an SSO email identity, and the Worker has `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` set. Sign in as Super Admin and use **Enable SSO** in **Super Admin Master Controls**. The current session ends and the portal redirects to Cloudflare Access. Staff then sign in with their IdP account; the Access email must match the email on their portal account.
 
 To turn SSO off, sign in as Super Admin using SSO, choose **Disable SSO**, and confirm. The session ends and local username/password sign-in becomes active again. The Access application may remain configured because only its callback path is protected; it will not gate normal portal use in local mode.
 

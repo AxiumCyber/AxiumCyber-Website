@@ -140,8 +140,11 @@ async function getAccount(env, email) {
 async function getAccountByUsername(env, username) {
     const normalized = typeof username === 'string' ? username.trim().toLowerCase() : '';
     if (!USERNAME_PATTERN.test(normalized)) return null;
-    const email = await env.AXIUM_KV.get(`username:${normalized}`);
-    return email ? getAccount(env, email) : null;
+    const accountReference = await env.AXIUM_KV.get(`username:${normalized}`);
+    if (!accountReference) return null;
+    return accountReference.startsWith('user:')
+        ? env.AXIUM_KV.get(accountReference, 'json')
+        : getAccount(env, accountReference);
 }
 
 async function getAuthMode(env) {
@@ -502,15 +505,15 @@ async function requestHandler(request, env) {
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid setup request.' }, 400); }
         const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
-        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-        if (!USERNAME_PATTERN.test(username) || !EMAIL_PATTERN.test(email) || email.length > 254 || typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) {
-            return json({ error: 'Enter a valid username, email, and password with 12 to 128 characters.' }, 400);
+        if (!USERNAME_PATTERN.test(username) || typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) {
+            return json({ error: 'Enter a valid username and password with 12 to 128 characters.' }, 400);
         }
-        if (await env.AXIUM_KV.get(`username:${username}`) || await getAccount(env, email)) return json({ error: 'That username or email is already registered.' }, 409);
+        if (await env.AXIUM_KV.get(`username:${username}`)) return json({ error: 'That username is already registered.' }, 409);
         const password = await hashPassword(body.password);
-        const account = { username, email, name: username, role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
-        await env.AXIUM_KV.put(`user:${email}`, JSON.stringify(account));
-        await env.AXIUM_KV.put(`username:${username}`, email);
+        const accountKey = `user:local:${username}`;
+        const account = { username, email: '', name: username, role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
+        await env.AXIUM_KV.put(accountKey, JSON.stringify(account));
+        await env.AXIUM_KV.put(`username:${username}`, accountKey);
         await env.AXIUM_KV.put('system:initialized', 'true');
         await writeAuditEvent(env, account, 'system.bootstrapped');
         const session = await createSession(env, account, 'local');

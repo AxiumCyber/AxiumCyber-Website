@@ -381,13 +381,10 @@
                     <form id="bootstrap-form" onsubmit="handleBootstrap(event)" class="hidden border-t border-slate-800 pt-4 space-y-3">
                         <div>
                             <h3 class="font-orbitron font-bold text-sm text-amber-200">INITIALIZE SUPER ADMIN</h3>
-                            <p class="text-[11px] text-slate-400 font-mono mt-1">Create the first local administrator. SSO can be enabled later from the dashboard.</p>
+                            <p class="text-[11px] text-slate-400 font-mono mt-1">Create the first local administrator. SSO requires an email identity and stays unavailable until one is configured.</p>
                         </div>
                         <label class="block text-xs font-orbitron text-slate-300">ADMIN USERNAME
                             <input id="bootstrap-username" type="text" required minlength="3" maxlength="24" pattern="[A-Za-z0-9._-]+" value="admin" autocomplete="username" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
-                        </label>
-                        <label class="block text-xs font-orbitron text-slate-300">ADMIN SSO EMAIL
-                            <input id="bootstrap-email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                         </label>
                         <label class="block text-xs font-orbitron text-slate-300">LOCAL ADMIN PASSWORD
                             <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
@@ -733,7 +730,7 @@
                 </div>
                 <div>
                     <span class="font-orbitron font-bold tracking-wider text-white">AXIUM CYBER LLC</span>
-                    <span class="block text-[10px] font-mono text-slate-400">&copy; 2026 Joseph Baldwin. All Rights Reserved.</span>
+                    <span class="block text-[10px] font-mono text-slate-400">&copy; 2026 Axium Cyber LLC. All Rights Reserved.</span>
                 </div>
             </div>
             <div class="flex items-center space-x-6 text-xs font-mono text-slate-400">
@@ -917,7 +914,6 @@
                     method: 'POST',
                     body: JSON.stringify({
                         username: document.getElementById('bootstrap-username').value.trim(),
-                        email: document.getElementById('bootstrap-email').value.trim(),
                         password: document.getElementById('bootstrap-password').value
                     })
                 });
@@ -1026,7 +1022,7 @@
                 usernameCell.textContent = user.username;
                 const emailCell = document.createElement('td');
                 emailCell.className = 'py-3 px-3 text-slate-400';
-                emailCell.textContent = user.email;
+                emailCell.textContent = user.email || 'LOCAL ONLY';
                 const roleCell = document.createElement('td');
                 roleCell.className = 'py-3 px-3 text-cyan-300';
                 roleCell.textContent = user.role;
