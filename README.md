@@ -2,7 +2,7 @@
 
 The Axium Cyber public website and staff portal. Local username/password. authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
 
-> This guide uses the Cloudflare dashboard only. No Wrangler, PowerShell, or terminal commands are required. Keep the bootstrap secret out of source files and chat messages.
+> This guide uses the Cloudflare dashboard only. No Wrangler, PowerShell, or terminal commands are required.
 
 ## How It Fits Together
 
@@ -78,7 +78,6 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | KV namespace | `AXIUM_KV` | Select the `AXIUM_KV` namespace created in Step 4 |
 | Text variable | `ACCESS_TEAM_DOMAIN` | Optional until SSO is activated; then use your team domain, e.g. `your-team.cloudflareaccess.com` |
 | Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
-| Secret | `AXIUM_BOOTSTRAP_SECRET` | Generate a long random value with your password manager, save it temporarily, and enter it here; see Step 7 |
 | Secret | `DISCORD_BOT_TOKEN` | Bot token from the Discord Developer Portal |
 | Text variable | `DISCORD_APPLICATION_ID` | Discord application ID |
 | Text variable | `DISCORD_PUBLIC_KEY` | Discord application public key (hex value) |
@@ -126,7 +125,6 @@ Check all of the following before first sign-in:
 - The Worker route is `portal.example.com/api/*`, not `portal.example.com/*`.
 - Worker KV binding is named exactly `AXIUM_KV` and points to your namespace.
 - `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` match the Access team and application.
-- `AXIUM_BOOTSTRAP_SECRET` is saved as a Worker **secret**, not a plain-text variable or source file.
 
 ```mermaid
 flowchart LR
@@ -138,22 +136,19 @@ flowchart LR
 
 ## Step 7: Create The First Super Admin (Local Mode)
 
-Open `https://portal.example.com` (replace this with your hostname). Local authentication is active by default. The first visit displays the one-time setup form:
+Open `https://portal.example.com` (replace this with your hostname). Local authentication is active by default. Until the first account is created, the site displays the one-time setup form. Anyone who can reach the site during this period can claim the first Super Admin account, so restrict access to the hostname while provisioning.
 
 ```mermaid
 flowchart LR
     A[Initial setup form] --> B[Choose username and email]
-    A --> C[Enter one-time setup key]
-    A --> D[Choose local password]
+    A --> C[Choose local password]
     B --> E[Create local Super Admin]
     C --> E
     D --> E
     E --> F[Local sign-in and dashboard]
 ```
 
-Enter the administrator's username, SSO email, the exact `AXIUM_BOOTSTRAP_SECRET` from Step 5, and a strong local password with at least 12 characters. Click **CREATE SUPER ADMIN**. This creates the first KV account and signs you in.
-
-After the dashboard opens, return to the Worker **Settings > Variables and Secrets** and delete `AXIUM_BOOTSTRAP_SECRET`. Keep the `AXIUM_KV` binding and namespace; they contain live portal data.
+Enter the administrator's username, SSO email, and a strong local password with at least 12 characters. Click **CREATE SUPER ADMIN**. This creates the first KV account and signs you in, and disables bootstrap for subsequent visitors. Keep the `AXIUM_KV` binding and namespace; they contain live portal data.
 
 ## Step 8: Assign Staff Roles
 
@@ -176,8 +171,6 @@ To turn SSO off, sign in as Super Admin using SSO, choose **Disable SSO**, and c
 | Worker says Access is not configured | In Worker settings, set `ACCESS_TEAM_DOMAIN` to your team domain without `https://`, and set `ACCESS_AUD` to the exact Access application Audience Tag. |
 | Access token is rejected | Check the team domain, Audience Tag, callback path, and that the Access app protects the callback on the same hostname as the portal. |
 | SSO works but portal says the identity has no role | Sign in locally as Super Admin (or use another provisioned Super Admin), then add the exact IdP email to Staff Identity Registry. |
-| Setup says it is disabled | Confirm `AXIUM_BOOTSTRAP_SECRET` exists as a Worker secret and then deploy the Worker from the dashboard. |
-| Setup says the key is invalid | Re-enter the exact setup key you saved as the Worker secret. It is not your Cloudflare, local, or IdP password. |
 | A staff user cannot switch back to local mode | Every account needs a local password. The registry requires one when adding accounts so both modes remain available. |
 | Public page loads but API returns 404 | Confirm the Worker route is `portal.example.com/api/*` and points to the API Worker. |
 | API returns a Pages HTML page instead of JSON | Check that the Worker API route takes precedence for `/api/*`, while Pages serves the rest of the hostname. |

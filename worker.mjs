@@ -498,11 +498,9 @@ async function requestHandler(request, env) {
 
     if (path === '/api/bootstrap' && method === 'POST') {
         if (await getAuthMode(env) !== 'local') return json({ error: 'Switch to local authentication before initializing the first account.' }, 409);
-        if (!env.AXIUM_BOOTSTRAP_SECRET) return json({ error: 'Initial setup is disabled. Configure AXIUM_BOOTSTRAP_SECRET in Worker secrets.' }, 503);
         if (await env.AXIUM_KV.get('system:initialized') === 'true') return json({ error: 'Initial setup has already been completed.' }, 409);
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid setup request.' }, 400); }
-        if (typeof body.setupSecret !== 'string' || body.setupSecret !== env.AXIUM_BOOTSTRAP_SECRET) return json({ error: 'Invalid setup key.' }, 401);
         const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
         const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
         if (!USERNAME_PATTERN.test(username) || !EMAIL_PATTERN.test(email) || email.length > 254 || typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) {

@@ -389,9 +389,6 @@
                         <label class="block text-xs font-orbitron text-slate-300">ADMIN SSO EMAIL
                             <input id="bootstrap-email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                         </label>
-                        <label class="block text-xs font-orbitron text-slate-300">ONE-TIME SETUP KEY
-                            <input id="bootstrap-key" type="password" required autocomplete="off" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
-                        </label>
                         <label class="block text-xs font-orbitron text-slate-300">LOCAL ADMIN PASSWORD
                             <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                         </label>
@@ -919,7 +916,6 @@
                 await apiRequest('/api/bootstrap', {
                     method: 'POST',
                     body: JSON.stringify({
-                        setupSecret: document.getElementById('bootstrap-key').value,
                         username: document.getElementById('bootstrap-username').value.trim(),
                         email: document.getElementById('bootstrap-email').value.trim(),
                         password: document.getElementById('bootstrap-password').value
