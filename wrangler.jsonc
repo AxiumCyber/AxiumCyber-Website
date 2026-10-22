@@ -1,11 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "axiumcyber-website",
+  "name": "axium-cyber-portal",
   "main": "worker.mjs",
   "compatibility_date": "2026-10-19",
   "vars": {
-    "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD",
     "ACCESS_TEAM_DOMAIN": "REPLACE_WITH_TEAM.cloudflareaccess.com",
+    "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD"
+  },
+  "previews": {
+    "kv_namespaces": [
+      {
+        "binding": "AXIUM-KV",
+        "id": "3ea592b878a14e9283d3c104e78dadbb"
+      }
+    ]
   },
   "assets": {
     "directory": ".",
