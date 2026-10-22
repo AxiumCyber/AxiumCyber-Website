@@ -6,7 +6,6 @@
   "vars": {
     "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD",
     "ACCESS_TEAM_DOMAIN": "REPLACE_WITH_TEAM.cloudflareaccess.com",
-    "AXIUM_KV": "3ea592b878a14e9283d3c104e78dadbb"
   },
   "assets": {
     "directory": ".",
