@@ -616,6 +616,159 @@ async function requestHandler(request, env) {
     const account = await getSession(request, env);
     if (!account) return json({ error: 'Sign in to the portal to continue.' }, 401);
 
+    if (path === '/api/client/portal' && method === 'GET') {
+        if (account.role !== 'Client') return json({ error: 'Client portal access required.' }, 403);
+        const [profile, contracts, tickets] = await Promise.all([
+            getClientProfile(env, account),
+            listClientContracts(env, account.username),
+            listTickets(env)
+        ]);
+        const clientTickets = tickets
+            .filter(ticket => clientOwnsTicket(ticket, account))
+            .map(toClientTicket);
+        return json({
+            user: { username: account.username, email: account.email },
+            profile,
+            contracts,
+            tickets: clientTickets
+        });
+    }
+
+    if (path === '/api/client/profile' && method === 'PATCH') {
+        if (account.role !== 'Client') return json({ error: 'Client portal access required.' }, 403);
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid profile update.' }, 400); }
+        const profile = await getClientProfile(env, account);
+        const fields = { company: 120, contactName: 120, phone: 40, timezone: 80 };
+        for (const [field, maxLength] of Object.entries(fields)) {
+            if (body[field] !== undefined) {
+                if (typeof body[field] !== 'string' || body[field].trim().length > maxLength) {
+                    return json({ error: `Profile field ${field} must be text under ${maxLength} characters.` }, 400);
+                }
+                profile[field] = body[field].trim();
+            }
+        }
+        await env.AXIUM_KV.put(`client:${account.username}`, JSON.stringify(profile));
+        return json({ profile });
+    }
+
+    const clientDocumentMatch = path.match(/^\/api\/client\/contracts\/([a-f0-9-]+)\/document$/i);
+    if (clientDocumentMatch && method === 'GET') {
+        if (account.role !== 'Client') return json({ error: 'Client portal access required.' }, 403);
+        const contractId = clientDocumentMatch[1];
+        const metadata = await env.AXIUM_KV.get(`client-contract:${account.username}:${contractId}`, 'json');
+        if (!metadata) return json({ error: 'Contract not found.' }, 404);
+        const encodedDocument = await env.AXIUM_KV.get(`client-contract-file:${account.username}:${contractId}`);
+        if (!encodedDocument) return json({ error: 'Contract document not found.' }, 404);
+        const fileName = metadata.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        return new Response(decodeBase64(encodedDocument), {
+            headers: {
+                'content-type': 'application/pdf',
+                'content-disposition': `inline; filename="${fileName}"`,
+                'cache-control': 'private, no-store',
+                'x-content-type-options': 'nosniff'
+            }
+        });
+    }
+
+    const clientRecordMatch = path.match(/^\/api\/clients(?:\/([^/]+)(?:\/(contracts|history))?)?$/);
+    if (clientRecordMatch) {
+        if (!requireRole(account, ['SUPER ADMIN', 'Admin'])) return json({ error: 'Admin role required to manage client records.' }, 403);
+        if (!clientRecordMatch[1] && method === 'GET') {
+            const clients = (await listUsers(env)).filter(user => user.role === 'Client');
+            return json({ clients: await Promise.all(clients.map(async client => {
+                const profile = await getClientProfile(env, client);
+                const contracts = await listClientContracts(env, client.username);
+                return { username: client.username, email: client.email, profile, contracts };
+            })) });
+        }
+
+        let username;
+        try { username = decodeURIComponent(clientRecordMatch[1]).trim().toLowerCase(); } catch { return json({ error: 'Invalid client username.' }, 400); }
+        if (!USERNAME_PATTERN.test(username)) return json({ error: 'Invalid client username.' }, 400);
+        const client = await getAccountByUsername(env, username);
+        if (!client || client.role !== 'Client') return json({ error: 'Client account not found.' }, 404);
+        const section = clientRecordMatch[2];
+
+        if (!section && method === 'GET') {
+            return json({
+                profile: await getClientProfile(env, client),
+                contracts: await listClientContracts(env, username)
+            });
+        }
+
+        if (!section && method === 'PATCH') {
+            let body;
+            try { body = await readBody(request); } catch { return json({ error: 'Invalid client profile update.' }, 400); }
+            const profile = await getClientProfile(env, client);
+            const fields = { company: 120, contactName: 120, phone: 40, timezone: 80 };
+            for (const [field, maxLength] of Object.entries(fields)) {
+                if (body[field] !== undefined) {
+                    if (typeof body[field] !== 'string' || body[field].trim().length > maxLength) {
+                        return json({ error: `Profile field ${field} must be text under ${maxLength} characters.` }, 400);
+                    }
+                    profile[field] = body[field].trim();
+                }
+            }
+            await env.AXIUM_KV.put(`client:${username}`, JSON.stringify(profile));
+            await writeAuditEvent(env, account, 'client.profile_updated', { client: username });
+            return json({ profile });
+        }
+
+        if (section === 'history' && method === 'POST') {
+            let body;
+            try { body = await readBody(request); } catch { return json({ error: 'Invalid service-history record.' }, 400); }
+            const title = typeof body.title === 'string' ? body.title.trim() : '';
+            const detail = typeof body.detail === 'string' ? body.detail.trim() : '';
+            const category = typeof body.category === 'string' ? body.category.trim() : '';
+            if (!title || title.length > 120 || !detail || detail.length > 1500 || !['Support', 'Maintenance', 'Security Review', 'Deployment', 'Other'].includes(category)) {
+                return json({ error: 'Enter a title, detail, and valid history category.' }, 400);
+            }
+            const profile = await getClientProfile(env, client);
+            profile.history = Array.isArray(profile.history) ? profile.history : [];
+            const record = { id: crypto.randomUUID(), title, detail, category, createdBy: account.username, createdAt: new Date().toISOString() };
+            profile.history = [record, ...profile.history].slice(0, 200);
+            await env.AXIUM_KV.put(`client:${username}`, JSON.stringify(profile));
+            await writeAuditEvent(env, account, 'client.history_added', { client: username, recordId: record.id });
+            return json({ record }, 201);
+        }
+
+        if (section === 'contracts' && method === 'POST') {
+            const contentLength = Number(request.headers.get('Content-Length') || 0);
+            if (contentLength > 5 * 1024 * 1024) return json({ error: 'Contract upload must be 4 MiB or smaller.' }, 413);
+            let form;
+            try { form = await request.formData(); } catch { return json({ error: 'Invalid contract upload.' }, 400); }
+            const title = typeof form.get('title') === 'string' ? form.get('title').trim() : '';
+            const signedDate = typeof form.get('signedDate') === 'string' ? form.get('signedDate').trim() : '';
+            const file = form.get('document');
+            if (!title || title.length > 120 || !/^\d{4}-\d{2}-\d{2}$/.test(signedDate) || !(file instanceof File)) {
+                return json({ error: 'Enter a contract title, signing date, and PDF document.' }, 400);
+            }
+            if (file.size < 5 || file.size > 4 * 1024 * 1024 || file.type !== 'application/pdf') {
+                return json({ error: 'Signed contracts must be PDF files no larger than 4 MiB.' }, 400);
+            }
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            if (new TextDecoder().decode(bytes.subarray(0, 5)) !== '%PDF-') return json({ error: 'The uploaded file is not a valid PDF.' }, 400);
+            let binary = '';
+            for (let offset = 0; offset < bytes.length; offset += 32768) {
+                binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+            }
+            const id = crypto.randomUUID();
+            const metadata = {
+                id,
+                title,
+                signedDate,
+                fileName: file.name.slice(0, 120),
+                uploadedBy: account.username,
+                createdAt: new Date().toISOString()
+            };
+            await env.AXIUM_KV.put(`client-contract-file:${username}:${id}`, btoa(binary));
+            await env.AXIUM_KV.put(`client-contract:${username}:${id}`, JSON.stringify(metadata));
+            await writeAuditEvent(env, account, 'client.contract_uploaded', { client: username, contractId: id });
+            return json({ contract: metadata }, 201);
+        }
+    }
+
     if (path === '/api/users' && method === 'GET') {
         if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
         const users = (await listUsers(env)).map(user => ({ username: user.username, email: user.email, name: user.name, role: user.role, createdAt: user.createdAt }));
@@ -693,7 +846,10 @@ async function requestHandler(request, env) {
     }
 
     if (path === '/api/tickets' && method === 'GET') {
-        return json({ tickets: await listTickets(env) });
+        const tickets = await listTickets(env);
+        return json({ tickets: account.role === 'Client'
+            ? tickets.filter(ticket => clientOwnsTicket(ticket, account)).map(toClientTicket)
+            : tickets });
     }
 
     if (path === '/api/tickets' && method === 'POST') {
@@ -716,7 +872,9 @@ async function requestHandler(request, env) {
             status: 'OPEN',
             author: account.username,
             role: account.role,
+            ...(account.role === 'Client' ? { clientUsername: account.username } : {}),
             createdAt: new Date().toISOString(),
+            replies: [],
             notes: [{ type: 'created', message: 'Ticket created.', author: account.username, role: account.role, createdAt: new Date().toISOString() }]
         };
         await saveTicket(env, ticket);
@@ -728,18 +886,32 @@ async function requestHandler(request, env) {
     const ticketMatch = path.match(/^\/api\/tickets\/(AX-[a-f0-9-]+)$/i);
     if (ticketMatch && method === 'GET') {
         const ticket = await getTicket(env, ticketMatch[1]);
-        return ticket ? json({ ticket }) : json({ error: 'Ticket not found.' }, 404);
+        if (!ticket || (account.role === 'Client' && !clientOwnsTicket(ticket, account))) return json({ error: 'Ticket not found.' }, 404);
+        return json({ ticket: account.role === 'Client' ? toClientTicket(ticket) : ticket });
     }
     if (ticketMatch && method === 'PATCH') {
         const ticket = await getTicket(env, ticketMatch[1]);
         if (!ticket) return json({ error: 'Ticket not found.' }, 404);
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid ticket update.' }, 400); }
+        if (account.role === 'Client') {
+            if (!clientOwnsTicket(ticket, account)) return json({ error: 'Ticket not found.' }, 404);
+            if (typeof body.reply !== 'string' || Object.keys(body).length !== 1) {
+                return json({ error: 'Clients may only add a reply to their own ticket.' }, 403);
+            }
+        }
         const now = new Date().toISOString();
         if (!Array.isArray(ticket.notes)) ticket.notes = [];
         let auditAction;
         let eventMessage;
-        if (body.status !== undefined) {
+        if (typeof body.reply === 'string') {
+            const reply = body.reply.trim();
+            if (!reply || reply.length > 2000) return json({ error: 'Replies must be 1 to 2000 characters.' }, 400);
+            ticket.replies = Array.isArray(ticket.replies) ? ticket.replies : [];
+            ticket.replies.push({ message: reply, author: account.username, role: account.role, createdAt: now });
+            auditAction = account.role === 'Client' ? 'ticket.client_replied' : 'ticket.reply_sent';
+            eventMessage = `[${ticket.id}] Reply from ${account.username}: ${reply}`;
+        } else if (body.status !== undefined) {
             if (!['IN_PROGRESS', 'RESOLVED'].includes(body.status)) return json({ error: 'Choose a valid ticket status.' }, 400);
             ticket.status = body.status;
             ticket.notes.push({ type: 'status', message: `Status changed to ${body.status}.`, author: account.username, role: account.role, createdAt: now });
@@ -779,7 +951,7 @@ async function requestHandler(request, env) {
         await saveTicket(env, ticket);
         await broadcastTicketMessage(env, ticket, eventMessage);
         await writeAuditEvent(env, account, auditAction, { ticketId: ticket.id });
-        return json({ ticket });
+        return json({ ticket: account.role === 'Client' ? toClientTicket(ticket) : ticket });
     }
     if (ticketMatch && method === 'DELETE') {
         if (!requireRole(account, ['SUPER ADMIN', 'Admin'])) return json({ error: 'Admin role required to delete tickets.' }, 403);

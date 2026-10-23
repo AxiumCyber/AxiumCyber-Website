@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Client Portal | Axium Cyber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { cyber: { dark: '#030712', cyan: '#00f3ff', gold: '#ffd700' } }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #030712; color: #f3f4f6; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        .panel { background: rgba(10, 15, 29, 0.9); border: 1px solid rgba(0, 243, 255, 0.17); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="border-b border-cyan-500/20 bg-slate-950/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-3" aria-label="Axium Cyber home">
+                <span class="w-11 h-11 rounded-lg border border-cyan-500/40 bg-cyan-500/10 flex items-center justify-center text-cyber-gold text-xl"><i class="fa-solid fa-ankh"></i></span>
+                <span><span class="block font-orbitron font-bold tracking-wider text-white">AXIUM CYBER</span><span class="block font-mono text-[10px] tracking-widest text-cyan-400">CLIENT PORTAL</span></span>
+            </a>
+            <div class="flex items-center gap-4">
+                <span id="client-identity" class="hidden sm:block font-mono text-xs text-slate-300"></span>
+                <button id="logout-button" type="button" title="Sign out" class="p-2 text-slate-400 hover:text-rose-300"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        <section class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+                <p class="font-mono text-xs tracking-widest text-cyan-400">SECURE CUSTOMER WORKSPACE</p>
+                <h1 class="font-orbitron text-2xl sm:text-3xl font-bold text-white mt-2">Client Portal</h1>
+            </div>
+            <p class="font-mono text-xs text-slate-400">Profile, agreements, service records, and support</p>
+        </section>
+
+        <section class="grid gap-4 lg:grid-cols-2">
+            <section class="panel rounded-lg p-5 space-y-4">
+                <header class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div><h2 class="font-orbitron font-semibold text-cyan-200">Client Profile</h2><p class="text-xs text-slate-400 mt-1">Keep your contact information current.</p></div>
+                    <i class="fa-solid fa-address-card text-cyan-400"></i>
+                </header>
+                <form id="profile-form" class="grid gap-3 sm:grid-cols-2">
+                    <label class="text-xs font-mono text-slate-300">ORGANIZATION
+                        <input name="company" maxlength="120" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                    </label>
+                    <label class="text-xs font-mono text-slate-300">PRIMARY CONTACT
+                        <input name="contactName" maxlength="120" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                    </label>
+                    <label class="text-xs font-mono text-slate-300">PHONE
+                        <input name="phone" type="tel" maxlength="40" autocomplete="tel" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                    </label>
+                    <label class="text-xs font-mono text-slate-300">TIME ZONE
+                        <input name="timezone" maxlength="80" placeholder="e.g. America/Los_Angeles" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                    </label>
+                    <div class="sm:col-span-2 flex items-center justify-between gap-3">
+                        <p id="profile-message" class="font-mono text-xs text-slate-400" aria-live="polite"></p>
+                        <button class="rounded-lg bg-cyan-400 px-4 py-2 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">SAVE PROFILE</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="panel rounded-lg p-5 space-y-4">
+                <header class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div><h2 class="font-orbitron font-semibold text-cyan-200">Signed Contracts</h2><p class="text-xs text-slate-400 mt-1">Your agreements are available to view as private PDFs.</p></div>
+                    <i class="fa-solid fa-file-contract text-cyber-gold"></i>
+                </header>
+                <div id="contract-list" class="space-y-2"><p class="font-mono text-xs text-slate-500">Loading contracts...</p></div>
+            </section>
+        </section>
+
+        <section class="panel rounded-lg p-5 space-y-4">
+            <header class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div><h2 class="font-orbitron font-semibold text-cyan-200">Technical & Service History</h2><p class="text-xs text-slate-400 mt-1">Completed service records and technical updates shared by your team.</p></div>
+                <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i>
+            </header>
+            <div id="history-list" class="grid gap-3 md:grid-cols-2"><p class="font-mono text-xs text-slate-500">Loading service history...</p></div>
+        </section>
+
+        <section class="space-y-4">
+            <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div><h2 class="font-orbitron text-lg font-bold text-white">Support Tickets</h2><p class="font-mono text-xs text-slate-400 mt-1">Only you and authorized support staff can access your tickets.</p></div>
+                <button id="refresh-tickets" type="button" title="Refresh tickets" class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-cyan-400"><i class="fa-solid fa-rotate mr-2"></i>Refresh</button>
+            </header>
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <section class="panel rounded-lg p-5 space-y-4">
+                    <h3 class="font-orbitron font-semibold text-cyan-200">Open a Support Request</h3>
+                    <form id="ticket-form" class="space-y-3">
+                        <label class="block text-xs font-mono text-slate-300">SUBJECT
+                            <input name="title" required maxlength="120" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                        </label>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="block text-xs font-mono text-slate-300">CATEGORY
+                                <select name="category" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option>Digital Vault</option><option>Forensic Analysis</option><option>Network Security</option><option>Executive Advisory</option></select>
+                            </label>
+                            <label class="block text-xs font-mono text-slate-300">PRIORITY
+                                <select name="priority" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select>
+                            </label>
+                        </div>
+                        <label class="block text-xs font-mono text-slate-300">DETAILS
+                            <textarea name="desc" required maxlength="2000" rows="4" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                        </label>
+                        <button class="w-full rounded-lg bg-cyan-400 px-4 py-2.5 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">SUBMIT SUPPORT TICKET</button>
+                    </form>
+                </section>
+
+                <section class="panel rounded-lg p-5 space-y-4">
+                    <h3 class="font-orbitron font-semibold text-cyan-200">Your Tickets</h3>
+                    <div id="ticket-list" class="space-y-2 max-h-64 overflow-y-auto"><p class="font-mono text-xs text-slate-500">Loading tickets...</p></div>
+                    <div id="ticket-detail" class="hidden border-t border-slate-800 pt-4 space-y-3">
+                        <div><p id="ticket-detail-id" class="font-mono text-[10px] text-cyan-400"></p><h4 id="ticket-detail-title" class="font-orbitron text-sm font-semibold text-white mt-1"></h4></div>
+                        <p id="ticket-detail-description" class="whitespace-pre-wrap text-sm text-slate-300"></p>
+                        <div id="ticket-replies" class="max-h-48 space-y-2 overflow-y-auto rounded-lg bg-slate-950 p-3"></div>
+                        <form id="reply-form" class="space-y-2">
+                            <label class="block text-xs font-mono text-slate-300">ADD A REPLY
+                                <textarea name="reply" required maxlength="2000" rows="2" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                            </label>
+                            <div class="flex justify-end"><button class="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-orbitron font-bold text-cyan-200">SEND REPLY</button></div>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <p id="portal-error" class="hidden rounded-lg border border-rose-500/30 bg-rose-950/30 p-3 font-mono text-xs text-rose-200" role="alert"></p>
+    </main>
+
+    <script>
+        let clientTickets = [];
+        let activeTicketId = null;
+
+        async function apiRequest(path, options = {}) {
+            const response = await fetch(path, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+            return result;
+        }
+
+        function showError(error) {
+            const output = document.getElementById('portal-error');
+            output.textContent = error.message;
+            output.classList.remove('hidden');
+        }
+
+        function renderContracts(contracts) {
+            const list = document.getElementById('contract-list');
+            list.replaceChildren();
+            if (!contracts.length) {
+                const empty = document.createElement('p');
+                empty.className = 'font-mono text-xs text-slate-500';
+                empty.textContent = 'No signed contracts have been added to your account.';
+                list.append(empty);
+                return;
+            }
+            contracts.sort((left, right) => right.signedDate.localeCompare(left.signedDate)).forEach(contract => {
+                const item = document.createElement('article');
+                item.className = 'flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/70 p-3';
+                const text = document.createElement('div');
+                const title = document.createElement('h3');
+                title.className = 'text-sm font-semibold text-white';
+                title.textContent = contract.title;
+                const signed = document.createElement('p');
+                signed.className = 'font-mono text-[10px] text-slate-400 mt-1';
+                signed.textContent = `Signed ${contract.signedDate}`;
+                text.append(title, signed);
+                const link = document.createElement('a');
+                link.href = `/api/client/contracts/${encodeURIComponent(contract.id)}/document`;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.className = 'inline-flex items-center justify-center gap-2 rounded border border-cyan-500/40 px-3 py-2 text-xs text-cyan-200 hover:bg-cyan-500/10';
+                link.innerHTML = '<i class="fa-solid fa-file-pdf"></i><span>VIEW PDF</span>';
+                item.append(text, link);
+                list.append(item);
+            });
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById('history-list');
+            list.replaceChildren();
+            if (!history.length) {
+                const empty = document.createElement('p');
+                empty.className = 'font-mono text-xs text-slate-500';
+                empty.textContent = 'No technical or service history has been recorded yet.';
+                list.append(empty);
+                return;
+            }
+            history.forEach(record => {
+                const item = document.createElement('article');
+                item.className = 'border-l-2 border-cyan-500/50 pl-4 py-1';
+                const meta = document.createElement('p');
+                meta.className = 'font-mono text-[10px] uppercase tracking-wider text-cyan-300';
+                meta.textContent = `${record.category} · ${new Date(record.createdAt).toLocaleDateString()}`;
+                const title = document.createElement('h3');
+                title.className = 'text-sm font-semibold text-white mt-1';
+                title.textContent = record.title;
+                const detail = document.createElement('p');
+                detail.className = 'whitespace-pre-wrap text-sm text-slate-300 mt-1';
+                detail.textContent = record.detail;
+                item.append(meta, title, detail);
+                list.append(item);
+            });
+        }
+
+        function renderTickets() {
+            const list = document.getElementById('ticket-list');
+            list.replaceChildren();
+            if (!clientTickets.length) {
+                const empty = document.createElement('p');
+                empty.className = 'font-mono text-xs text-slate-500';
+                empty.textContent = 'No support tickets yet.';
+                list.append(empty);
+                return;
+            }
+            clientTickets.forEach(ticket => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'w-full rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-left hover:border-cyan-500/50';
+                const title = document.createElement('span');
+                title.className = 'block text-sm font-semibold text-slate-100';
+                title.textContent = ticket.title;
+                const meta = document.createElement('span');
+                meta.className = 'block font-mono text-[10px] text-slate-400 mt-1';
+                meta.textContent = `${ticket.id} · ${ticket.status} · ${ticket.priority}`;
+                button.append(title, meta);
+                button.addEventListener('click', () => openTicket(ticket.id));
+                list.append(button);
+            });
+        }
+
+        async function refreshTickets() {
+            try {
+                const result = await apiRequest('/api/tickets');
+                clientTickets = result.tickets;
+                renderTickets();
+                if (activeTicketId) await openTicket(activeTicketId);
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        async function openTicket(id) {
+            try {
+                const result = await apiRequest(`/api/tickets/${encodeURIComponent(id)}`);
+                const ticket = result.ticket;
+                activeTicketId = ticket.id;
+                document.getElementById('ticket-detail').classList.remove('hidden');
+                document.getElementById('ticket-detail-id').textContent = `${ticket.id} · ${ticket.status} · ${ticket.priority}`;
+                document.getElementById('ticket-detail-title').textContent = ticket.title;
+                document.getElementById('ticket-detail-description').textContent = ticket.desc;
+                const replies = document.getElementById('ticket-replies');
+                replies.replaceChildren();
+                if (!ticket.replies.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'font-mono text-xs text-slate-500';
+                    empty.textContent = 'No replies yet.';
+                    replies.append(empty);
+                } else {
+                    ticket.replies.forEach(reply => {
+                        const item = document.createElement('article');
+                        item.className = 'border-l-2 border-cyan-500/50 pl-3 py-1';
+                        const meta = document.createElement('p');
+                        meta.className = 'font-mono text-[10px] text-slate-500';
+                        meta.textContent = `${reply.author} · ${new Date(reply.createdAt).toLocaleString()}`;
+                        const message = document.createElement('p');
+                        message.className = 'whitespace-pre-wrap text-sm text-slate-200 mt-1';
+                        message.textContent = reply.message;
+                        item.append(meta, message);
+                        replies.append(item);
+                    });
+                }
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        async function loadPortal() {
+            try {
+                const result = await apiRequest('/api/client/portal');
+                document.getElementById('client-identity').textContent = `${result.user.username} · ${result.user.email}`;
+                const profileForm = document.getElementById('profile-form');
+                for (const field of ['company', 'contactName', 'phone', 'timezone']) {
+                    profileForm.elements[field].value = result.profile[field] || '';
+                }
+                renderContracts(result.contracts);
+                renderHistory(result.profile.history || []);
+                clientTickets = result.tickets;
+                renderTickets();
+            } catch (error) {
+                if (error.message.includes('401') || error.message.includes('Client portal access required')) {
+                    window.location.replace('/#portal');
+                    return;
+                }
+                showError(error);
+            }
+        }
+
+        document.getElementById('profile-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const message = document.getElementById('profile-message');
+            try {
+                const fields = new FormData(form);
+                await apiRequest('/api/client/profile', {
+                    method: 'PATCH',
+                    body: JSON.stringify(Object.fromEntries(fields.entries()))
+                });
+                message.textContent = 'Profile saved.';
+                message.className = 'font-mono text-xs text-emerald-300';
+            } catch (error) {
+                message.textContent = error.message;
+                message.className = 'font-mono text-xs text-rose-300';
+            }
+        });
+
+        document.getElementById('ticket-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            try {
+                const result = await apiRequest('/api/tickets', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: fields.get('title').trim(),
+                        desc: fields.get('desc').trim(),
+                        category: fields.get('category'),
+                        priority: fields.get('priority')
+                    })
+                });
+                event.currentTarget.reset();
+                await refreshTickets();
+                await openTicket(result.ticket.id);
+            } catch (error) {
+                showError(error);
+            }
+        });
+
+        document.getElementById('reply-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            if (!activeTicketId) return;
+            const reply = new FormData(event.currentTarget).get('reply').trim();
+            try {
+                await apiRequest(`/api/tickets/${encodeURIComponent(activeTicketId)}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ reply })
+                });
+                event.currentTarget.reset();
+                await openTicket(activeTicketId);
+                await refreshTickets();
+            } catch (error) {
+                showError(error);
+            }
+        });
+        document.getElementById('refresh-tickets').addEventListener('click', refreshTickets);
+        document.getElementById('logout-button').addEventListener('click', async () => {
+            try {
+                await apiRequest('/api/logout', { method: 'POST' });
+                window.location.replace('/#portal');
+            } catch (error) {
+                showError(error);
+            }
+        });
+
+        loadPortal();
+    </script>
+</body>
+</html>
