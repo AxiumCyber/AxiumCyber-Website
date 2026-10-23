@@ -3,7 +3,7 @@ const USERNAME_PATTERN = /^[a-z0-9._-]{3,24}$/;
 const ROLES = ['SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff'];
 const SESSION_COOKIE = '__Host-axium_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
-const PASSWORD_ITERATIONS = 120000;
+const PASSWORD_ITERATIONS = 100000;
 const encoder = new TextEncoder();
 let cachedAccessKeys = null;
 let cachedAccessDomain = null;
@@ -536,7 +536,10 @@ async function requestHandler(request, env) {
             if (accountSaved) cleanup.push(env.AXIUM_KV.delete(accountKey));
             if (session) cleanup.push(env.AXIUM_KV.delete(`session:${session.tokenHash}`));
             await Promise.allSettled(cleanup);
-            return json({ error: `Initial setup failed while ${stage}. Check Worker logs and AXIUM_KV write access before retrying.` }, 503);
+            const message = stage === 'deriving the password hash'
+                ? 'Password hashing failed before any account data was written. Check Worker crypto/runtime or CPU errors in the logs.'
+                : `Initial setup failed while ${stage}. Check Worker logs and AXIUM_KV write access before retrying.`;
+            return json({ error: message }, 503);
         }
     }
 
