@@ -505,8 +505,8 @@ async function requestHandler(request, env) {
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid setup request.' }, 400); }
         const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
-        if (!USERNAME_PATTERN.test(username) || typeof body.password !== 'string' || body.password.length < 12 || body.password.length > 128) {
-            return json({ error: 'Enter a valid username and password with 12 to 128 characters.' }, 400);
+        if (!USERNAME_PATTERN.test(username) || typeof body.password !== 'string' || body.password.length < 24 || body.password.length > 128) {
+            return json({ error: 'Enter a valid username and password with 24 to 128 characters.' }, 400);
         }
         if (await env.AXIUM_KV.get(`username:${username}`)) return json({ error: 'That username is already registered.' }, 409);
         const password = await hashPassword(body.password);

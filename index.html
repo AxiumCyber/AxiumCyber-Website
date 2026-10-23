@@ -392,7 +392,7 @@
                         </label>
                         <label class="block text-xs font-orbitron text-slate-300">LOCAL ADMIN PASSWORD
                             <div class="mt-1 flex gap-2">
-                                <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" class="min-w-0 flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                                <input id="bootstrap-password" type="password" required readonly minlength="24" maxlength="128" autocomplete="off" class="min-w-0 flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                                 <button id="toggle-bootstrap-password" type="button" title="Show password" aria-label="Show password" class="px-3 text-slate-300 hover:text-white"><i class="fa-solid fa-eye"></i></button>
                                 <button id="copy-bootstrap-password" type="button" title="Copy password" aria-label="Copy password" class="px-3 text-slate-300 hover:text-cyan-300"><i class="fa-regular fa-copy"></i></button>
                             </div>
@@ -969,11 +969,15 @@
             const help = document.getElementById('bootstrap-password-help');
             const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
             if (!globalThis.crypto?.getRandomValues) {
-                help.textContent = 'Secure password generation is unavailable in this browser. Use a password manager to create one.';
+                passwordInput.readOnly = false;
+                passwordInput.minLength = 24;
+                help.textContent = 'Secure password generation is unavailable. Generate a password of at least 24 characters in your password manager.';
                 return;
             }
             const randomValues = crypto.getRandomValues(new Uint8Array(24));
             passwordInput.value = Array.from(randomValues, value => alphabet[value % alphabet.length]).join('');
+            passwordInput.readOnly = true;
+            passwordInput.minLength = 24;
             passwordInput.type = 'password';
             document.getElementById('toggle-bootstrap-password').innerHTML = '<i class="fa-solid fa-eye"></i>';
             document.getElementById('toggle-bootstrap-password').setAttribute('aria-label', 'Show password');
