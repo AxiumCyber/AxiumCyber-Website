@@ -101,6 +101,9 @@
                 <button onclick="openPortalTab()" id="nav-portal" class="text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent">
                     <i class="fa-solid fa-terminal"></i><span>Staff & Admin Portal</span>
                 </button>
+                <a href="/staff-dashboard.html" id="nav-staff-dashboard" target="_blank" rel="noopener" class="hidden text-slate-400 hover:text-cyber-cyan transition-colors items-center space-x-2 py-2 border-b-2 border-transparent">
+                    <i class="fa-solid fa-chart-line"></i><span>Staff Dashboard</span>
+                </a>
             </nav>
 
             <!-- Right Actions -->
@@ -121,6 +124,7 @@
         <div id="mobile-menu" class="hidden md:hidden glass-panel border-t border-cyan-500/20 px-4 py-4 space-y-3 font-orbitron text-sm">
             <button onclick="switchTab('public'); toggleMobileMenu();" class="block w-full text-left py-2 text-cyan-400"><i class="fa-solid fa-shield-halved mr-2"></i>Public HQ</button>
             <button onclick="openPortalTab(); toggleMobileMenu();" class="block w-full text-left py-2 text-slate-300"><i class="fa-solid fa-terminal mr-2"></i>Staff & Admin Portal</button>
+            <a href="/staff-dashboard.html" id="mobile-nav-staff-dashboard" target="_blank" rel="noopener" class="hidden w-full text-left py-2 text-slate-300"><i class="fa-solid fa-chart-line mr-2"></i>Staff Dashboard</a>
         </div>
     </header>
 
@@ -958,6 +962,8 @@
             const workspace = document.getElementById('portal-workspace');
             const statusIndicator = document.getElementById('auth-status-indicator');
             const message = document.getElementById('login-message');
+            const dashboardNav = document.getElementById('nav-staff-dashboard');
+            const mobileDashboardNav = document.getElementById('mobile-nav-staff-dashboard');
             try {
                 const session = await apiRequest('/api/session');
                 currentAuthMode = session.authMode;
@@ -970,6 +976,10 @@
                     workspace.classList.add('hidden');
                     statusIndicator.classList.add('hidden');
                     statusIndicator.classList.remove('flex');
+                    dashboardNav.classList.add('hidden');
+                    dashboardNav.classList.remove('flex');
+                    mobileDashboardNav.classList.add('hidden');
+                    mobileDashboardNav.classList.remove('block');
                     updateAuthModeControls(session.setupRequired);
                     message.classList.add('hidden');
                     document.getElementById('auth-mode-btn').classList.toggle('hidden', true);
@@ -983,6 +993,10 @@
                 workspace.classList.remove('hidden');
                 statusIndicator.classList.remove('hidden');
                 statusIndicator.classList.add('flex');
+                dashboardNav.classList.remove('hidden');
+                dashboardNav.classList.add('flex');
+                mobileDashboardNav.classList.remove('hidden');
+                mobileDashboardNav.classList.add('block');
                 document.getElementById('session-user-badge').innerText = currentUser;
                 document.getElementById('session-role-badge').innerText = currentRole;
                 document.getElementById('active-role-label').innerText = currentRole.toUpperCase();
@@ -1001,6 +1015,10 @@
                 workspace.classList.add('hidden');
                 statusIndicator.classList.add('hidden');
                 statusIndicator.classList.remove('flex');
+                dashboardNav.classList.add('hidden');
+                dashboardNav.classList.remove('flex');
+                mobileDashboardNav.classList.add('hidden');
+                mobileDashboardNav.classList.remove('block');
                 updateAuthModeControls();
                 document.getElementById('auth-mode-btn').classList.add('hidden');
                 message.textContent = `Portal connection failed: ${error.message}`;

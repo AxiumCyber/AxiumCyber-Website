@@ -677,26 +677,49 @@ async function requestHandler(request, env) {
         let body;
         try { body = await readBody(request); } catch { return json({ error: 'Invalid ticket update.' }, 400); }
         const now = new Date().toISOString();
+        if (!Array.isArray(ticket.notes)) ticket.notes = [];
+        let auditAction;
+        let eventMessage;
         if (body.status !== undefined) {
             if (!['IN_PROGRESS', 'RESOLVED'].includes(body.status)) return json({ error: 'Choose a valid ticket status.' }, 400);
             ticket.status = body.status;
             ticket.notes.push({ type: 'status', message: `Status changed to ${body.status}.`, author: account.username, role: account.role, createdAt: now });
+            auditAction = 'ticket.status_changed';
+            eventMessage = `[${ticket.id}] Status changed to ${body.status} by ${account.username}.`;
         } else if (typeof body.note === 'string') {
             const note = body.note.trim();
             if (!note || note.length > 500) return json({ error: 'Notes must be 1 to 500 characters.' }, 400);
             ticket.notes.push({ type: 'note', message: note, author: account.username, role: account.role, createdAt: now });
+            auditAction = 'ticket.note_added';
+            eventMessage = `[${ticket.id}] ${account.username}: ${note}`;
+        } else if (typeof body.escalationReason === 'string') {
+            const reason = body.escalationReason.trim();
+            if (!reason || reason.length > 500) return json({ error: 'Escalation reason must be 1 to 500 characters.' }, 400);
+            ticket.escalation = {
+                status: 'OPEN',
+                targetRole: 'SUPER ADMIN',
+                reason,
+                escalatedBy: account.username,
+                escalatedAt: now
+            };
+            ticket.notes.push({ type: 'escalation', message: `Escalated to Super Admin: ${reason}`, author: account.username, role: account.role, createdAt: now });
+            auditAction = 'ticket.escalated';
+            eventMessage = `[${ticket.id}] Escalated to Super Admin by ${account.username}: ${reason}`;
+        } else if (body.resolveEscalation === true) {
+            if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required to review an escalation.' }, 403);
+            if (ticket.escalation?.status !== 'OPEN') return json({ error: 'This ticket has no open escalation.' }, 409);
+            ticket.escalation.status = 'REVIEWED';
+            ticket.escalation.reviewedBy = account.username;
+            ticket.escalation.reviewedAt = now;
+            ticket.notes.push({ type: 'escalation_reviewed', message: `Escalation reviewed by ${account.username}.`, author: account.username, role: account.role, createdAt: now });
+            auditAction = 'ticket.escalation_reviewed';
+            eventMessage = `[${ticket.id}] Escalation reviewed by ${account.username}.`;
         } else {
             return json({ error: 'No supported ticket update was provided.' }, 400);
         }
         await saveTicket(env, ticket);
-        const eventMessage = body.status === undefined
-            ? `[${ticket.id}] ${account.username}: ${body.note.trim()}`
-            : `[${ticket.id}] Status changed to ${body.status} by ${account.username}.`;
         await broadcastTicketMessage(env, ticket, eventMessage);
-        await writeAuditEvent(env, account, body.status === undefined ? 'ticket.note_added' : 'ticket.status_changed', {
-            ticketId: ticket.id,
-            ...(body.status === undefined ? {} : { status: body.status })
-        });
+        await writeAuditEvent(env, account, auditAction, { ticketId: ticket.id });
         return json({ ticket });
     }
     if (ticketMatch && method === 'DELETE') {
@@ -768,6 +791,23 @@ export default {
             } catch (error) {
                 console.error('Axium API request failed:', error);
                 return json({ error: error.status ? error.message : 'The request could not be completed.' }, error.status || 500);
+            }
+        }
+        if (path === '/staff-dashboard.html') {
+            try {
+                if (!await getSession(request, env)) {
+                    return new Response(null, {
+                        status: 302,
+                        headers: { 'location': new URL('/#portal', request.url).toString(), 'cache-control': 'no-store' }
+                    });
+                }
+                return env.ASSETS.fetch(request);
+            } catch (error) {
+                console.error('Could not authorize staff dashboard:', error);
+                return new Response('Staff dashboard is temporarily unavailable.', {
+                    status: 503,
+                    headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }
+                });
             }
         }
         return env.ASSETS.fetch(request);

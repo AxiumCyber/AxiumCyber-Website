@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Staff Dashboard | Axium Cyber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: { dark: '#030712', cyan: '#00f3ff', gold: '#ffd700' }
+                    },
+                    boxShadow: { 'neon-cyan': '0 0 15px rgba(0, 243, 255, 0.3)' }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #030712; color: #f3f4f6; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-mono { font-family: 'Share Tech Mono', monospace; }
+        .glass-panel { background: rgba(10, 15, 29, 0.88); border: 1px solid rgba(0, 243, 255, 0.18); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="border-b border-cyan-500/20 bg-slate-950/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
+            <a href="/" class="flex items-center gap-3" aria-label="Axium Cyber home">
+                <span class="w-11 h-11 rounded-lg border border-cyan-500/40 bg-cyan-500/10 flex items-center justify-center text-cyber-gold text-xl"><i class="fa-solid fa-ankh"></i></span>
+                <span>
+                    <span class="block font-orbitron font-bold tracking-wider text-white">AXIUM CYBER</span>
+                    <span class="block font-mono text-[10px] tracking-widest text-cyan-400">STAFF DASHBOARD</span>
+                </span>
+            </a>
+            <div class="flex items-center gap-4">
+                <a href="/#portal" class="text-xs font-orbitron text-slate-300 hover:text-cyan-300 transition-colors"><i class="fa-solid fa-arrow-left mr-2"></i>PORTAL</a>
+                <button type="button" onclick="logout()" title="Sign out" class="text-slate-400 hover:text-rose-300 p-2"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        <section class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+                <p class="font-mono text-xs text-cyan-400 tracking-widest">AUTHORIZED STAFF WORKSPACE</p>
+                <h1 class="font-orbitron text-2xl sm:text-3xl font-bold text-white mt-2">Staff Dashboard</h1>
+            </div>
+            <div class="text-left sm:text-right">
+                <div id="identity" class="font-mono text-sm text-slate-200" aria-live="polite">Checking session...</div>
+                <div id="role-label" class="font-mono text-xs text-cyan-400 mt-1">VERIFYING ROLE</div>
+            </div>
+        </section>
+
+        <section class="grid gap-3 sm:grid-cols-3" aria-label="Ticket summary">
+            <div class="glass-panel rounded-lg p-4">
+                <p class="font-mono text-xs text-slate-400">OPEN TICKETS</p>
+                <p id="metric-open" class="font-orbitron text-2xl font-bold text-cyan-300 mt-2">0</p>
+            </div>
+            <div class="glass-panel rounded-lg p-4">
+                <p class="font-mono text-xs text-slate-400">CRITICAL OPEN</p>
+                <p id="metric-critical" class="font-orbitron text-2xl font-bold text-rose-300 mt-2">0</p>
+            </div>
+            <div class="glass-panel rounded-lg p-4">
+                <p class="font-mono text-xs text-slate-400">AWAITING SUPER ADMIN REVIEW</p>
+                <p id="metric-escalated" class="font-orbitron text-2xl font-bold text-amber-300 mt-2">0</p>
+            </div>
+        </section>
+
+        <nav class="flex gap-2 border-b border-slate-800" aria-label="Dashboard sections">
+            <a href="#tickets" class="px-3 py-3 border-b-2 border-cyan-400 text-cyan-300 font-orbitron text-xs">SUPPORT TICKETS</a>
+            <a href="#security-toolkit" class="px-3 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-orbitron text-xs">DEFENSIVE TOOLKIT</a>
+        </nav>
+
+        <section id="tickets" class="space-y-4 scroll-mt-6">
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                <div>
+                    <h2 class="font-orbitron text-lg font-bold text-white">Support Tickets</h2>
+                    <p class="font-mono text-xs text-slate-400 mt-1">Review, respond, track status, and escalate for senior review.</p>
+                </div>
+                <button type="button" onclick="refreshTickets()" title="Refresh ticket list" class="inline-flex items-center justify-center gap-2 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 hover:border-cyan-400 hover:text-cyan-200"><i class="fa-solid fa-rotate"></i><span>Refresh</span></button>
+            </div>
+
+            <details class="glass-panel rounded-lg">
+                <summary class="cursor-pointer list-none p-4 flex items-center justify-between text-sm font-orbitron font-semibold text-cyan-200"><span><i class="fa-solid fa-plus mr-2"></i>New ticket</span><i class="fa-solid fa-chevron-down text-xs"></i></summary>
+                <form id="ticket-create-form" class="grid gap-3 border-t border-slate-800 p-4 sm:grid-cols-2">
+                    <label class="text-xs font-mono text-slate-300 sm:col-span-2">SUBJECT
+                        <input name="title" required maxlength="120" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400">
+                    </label>
+                    <label class="text-xs font-mono text-slate-300">CATEGORY
+                        <select name="category" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                            <option>Digital Vault</option><option>Forensic Analysis</option><option>Network Security</option><option>Executive Advisory</option>
+                        </select>
+                    </label>
+                    <label class="text-xs font-mono text-slate-300">PRIORITY
+                        <select name="priority" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                            <option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option>
+                        </select>
+                    </label>
+                    <label class="text-xs font-mono text-slate-300 sm:col-span-2">DESCRIPTION
+                        <textarea name="desc" required maxlength="2000" rows="4" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400"></textarea>
+                    </label>
+                    <div class="sm:col-span-2 flex justify-end">
+                        <button class="rounded-lg bg-cyan-400 px-4 py-2 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">CREATE TICKET</button>
+                    </div>
+                </form>
+            </details>
+
+            <div class="glass-panel rounded-lg p-3 flex flex-col sm:flex-row gap-3">
+                <label class="relative flex-1">
+                    <span class="sr-only">Search tickets</span>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <input id="ticket-search" type="search" placeholder="Search ID, subject, requester..." class="w-full rounded-lg border border-slate-700 bg-slate-950 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-cyan-400">
+                </label>
+                <label>
+                    <span class="sr-only">Filter tickets</span>
+                    <select id="ticket-filter" class="w-full sm:w-48 rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                        <option value="ALL">All tickets</option><option value="OPEN">Open</option><option value="IN_PROGRESS">In progress</option><option value="RESOLVED">Resolved</option><option value="ESCALATED">Awaiting review</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="glass-panel rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left text-xs">
+                        <thead class="bg-slate-950/80 font-mono text-[10px] text-slate-400">
+                            <tr><th class="px-4 py-3">TICKET</th><th class="px-4 py-3">REQUESTER</th><th class="px-4 py-3">PRIORITY</th><th class="px-4 py-3">STATUS</th><th class="px-4 py-3">ESCALATION</th><th class="px-4 py-3 text-right">ACTION</th></tr>
+                        </thead>
+                        <tbody id="ticket-rows" class="divide-y divide-slate-800 font-mono"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="security-toolkit" class="space-y-4 scroll-mt-6">
+            <div>
+                <h2 class="font-orbitron text-lg font-bold text-white">Defensive Security Toolkit</h2>
+                <p class="font-mono text-xs text-slate-400 mt-1">Use only for assets and work covered by explicit authorization.</p>
+            </div>
+            <div class="grid gap-4 lg:grid-cols-2">
+                <section class="glass-panel rounded-lg p-5 space-y-4">
+                    <div>
+                        <h3 class="font-orbitron font-semibold text-cyan-200">Authorization Check</h3>
+                        <p class="text-xs text-slate-400 mt-1">Confirm written approval, scope, and test window before assessment work.</p>
+                    </div>
+                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Written approval is recorded</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Target assets and exclusions are explicit</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Test window and impact limits are agreed</label>
+                    <p id="scope-result" class="font-mono text-xs text-amber-300" aria-live="polite">Assessment readiness is not confirmed.</p>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-4">
+                    <div>
+                        <h3 class="font-orbitron font-semibold text-cyan-200">Incident Priority Triage</h3>
+                        <p class="text-xs text-slate-400 mt-1">A local guide for routing reports; use judgment and your incident policy.</p>
+                    </div>
+                    <label class="block text-xs font-mono text-slate-300">BUSINESS IMPACT
+                        <select id="triage-impact" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option value="1">Limited / contained</option><option value="2">Multiple users or service disruption</option><option value="3">Critical service or sensitive data</option></select>
+                    </label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input id="triage-exploitation" type="checkbox" class="accent-cyan-400"> Active exploitation is confirmed</label>
+                    <button id="triage-button" type="button" class="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-orbitron font-bold text-cyan-200 hover:bg-cyan-500/20">SUGGEST PRIORITY</button>
+                    <p id="triage-result" class="font-mono text-sm text-slate-300" aria-live="polite">No triage result yet.</p>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-3">
+                    <h3 class="font-orbitron font-semibold text-cyan-200">Response Checklist</h3>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Record report time, reporter, and affected service</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Preserve original evidence and document handling</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Contain risk using the approved incident plan</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Record actions, owners, and next review time in the ticket</label>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-3">
+                    <div>
+                        <h3 class="font-orbitron font-semibold text-cyan-200">Evidence File Fingerprint</h3>
+                        <p class="font-mono text-[10px] text-slate-500 mt-1">SHA-256 · FILE STAYS IN THIS BROWSER · MAX 100 MB</p>
+                    </div>
+                    <input id="evidence-file" type="file" class="block w-full text-xs text-slate-300 file:mr-3 file:rounded file:border-0 file:bg-slate-800 file:px-3 file:py-2 file:text-xs file:text-cyan-200">
+                    <button id="hash-file" type="button" class="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-orbitron font-bold text-cyan-200 hover:bg-cyan-500/20">CALCULATE HASH</button>
+                    <p id="file-hash" class="break-all font-mono text-xs text-slate-300" aria-live="polite">No file selected.</p>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-3">
+                    <h3 class="font-orbitron font-semibold text-cyan-200">Security References</h3>
+                    <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener noreferrer">OWASP Web Security Testing Guide <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                    <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://www.cisa.gov/stopransomware" target="_blank" rel="noopener noreferrer">CISA Incident Response Resources <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                    <a class="flex items-center justify-between py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://www.nist.gov/cyberframework" target="_blank" rel="noopener noreferrer">NIST Cybersecurity Framework <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                </section>
+            </div>
+            <p class="font-mono text-[11px] text-slate-500">This workspace provides defensive triage and response aids. It does not run scans, exploit code, or test third-party targets.</p>
+        </section>
+
+        <p id="dashboard-error" class="hidden font-mono text-sm text-rose-300" role="alert"></p>
+    </main>
+
+    <dialog id="ticket-dialog" class="w-[min(96vw,48rem)] max-h-[90vh] overflow-y-auto rounded-lg border border-cyan-500/30 bg-slate-950 p-0 text-slate-100 backdrop:bg-black/80">
+        <div class="p-5 sm:p-6 space-y-5">
+            <header class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <p id="detail-id" class="font-mono text-xs text-cyan-300"></p>
+                    <h2 id="detail-title" class="font-orbitron text-lg font-bold text-white mt-2"></h2>
+                    <p id="detail-meta" class="font-mono text-xs text-slate-400 mt-2"></p>
+                </div>
+                <button type="button" onclick="closeTicket()" title="Close ticket" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark"></i></button>
+            </header>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-3"><p class="font-mono text-[10px] text-slate-500">STATUS</p><p id="detail-status" class="font-orbitron text-sm text-cyan-200 mt-1"></p></div>
+                <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-3"><p class="font-mono text-[10px] text-slate-500">PRIORITY / CATEGORY</p><p id="detail-priority" class="font-orbitron text-sm text-amber-200 mt-1"></p></div>
+            </div>
+            <section><h3 class="font-mono text-[10px] text-slate-400">DESCRIPTION</h3><p id="detail-description" class="whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-200 mt-2"></p></section>
+            <section>
+                <h3 class="font-mono text-[10px] text-slate-400">ACTIVITY</h3>
+                <div id="detail-notes" class="mt-2 max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/50 p-3"></div>
+            </section>
+            <form id="reply-form" class="space-y-2">
+                <label class="block font-mono text-[10px] text-slate-400">REPLY / STAFF UPDATE
+                    <textarea name="note" required maxlength="500" rows="3" class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white outline-none focus:border-cyan-400"></textarea>
+                </label>
+                <div class="flex justify-end"><button class="rounded-lg bg-cyan-400 px-4 py-2 text-xs font-orbitron font-bold text-slate-950">SEND UPDATE</button></div>
+            </form>
+            <section class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <div><h3 class="font-orbitron text-sm font-semibold text-amber-200">Senior Review</h3><p id="escalation-state" class="font-mono text-xs text-slate-300 mt-1"></p></div>
+                <form id="escalation-form" class="space-y-2">
+                    <label class="block font-mono text-[10px] text-slate-400">REASON FOR SUPER ADMIN REVIEW
+                        <textarea name="reason" required maxlength="500" rows="2" class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white outline-none focus:border-amber-400"></textarea>
+                    </label>
+                    <button class="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-orbitron font-bold text-amber-200 hover:bg-amber-400/20">ESCALATE TO SUPER ADMIN</button>
+                </form>
+                <button id="review-escalation" type="button" class="hidden rounded-lg bg-emerald-400 px-3 py-2 text-xs font-orbitron font-bold text-slate-950">MARK REVIEWED</button>
+            </section>
+            <footer class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-800 pt-4">
+                <label class="flex items-center gap-2 font-mono text-xs text-slate-300">UPDATE STATUS
+                    <select id="status-select" class="rounded-lg border border-slate-700 bg-slate-900 p-2 text-xs text-white"><option value="IN_PROGRESS">In progress</option><option value="RESOLVED">Resolved</option></select>
+                </label>
+                <div class="flex gap-2">
+                    <button id="save-status" type="button" class="rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-orbitron text-cyan-200">SAVE STATUS</button>
+                    <button id="delete-ticket" type="button" class="hidden rounded-lg border border-rose-500/40 px-3 py-2 text-xs font-orbitron text-rose-200">DELETE</button>
+                </div>
+            </footer>
+        </div>
+    </dialog>
+
+    <script>
+        let currentRole = '';
+        let currentUser = '';
+        let tickets = [];
+        let activeTicket = null;
+
+        async function apiRequest(path, options = {}) {
+            const response = await fetch(path, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+            return result;
+        }
+
+        function showError(error) {
+            const message = document.getElementById('dashboard-error');
+            message.textContent = error.message;
+            message.classList.remove('hidden');
+        }
+
+        async function loadDashboard() {
+            try {
+                const session = await apiRequest('/api/session');
+                if (!session.authenticated) {
+                    window.location.replace('/#portal');
+                    return;
+                }
+                currentUser = session.user;
+                currentRole = session.role;
+                document.getElementById('identity').textContent = `SIGNED IN AS ${currentUser}`;
+                document.getElementById('role-label').textContent = currentRole;
+                document.getElementById('delete-ticket').classList.toggle('hidden', !['SUPER ADMIN', 'Admin'].includes(currentRole));
+                await refreshTickets();
+            } catch (loadError) {
+                showError(loadError);
+            }
+        }
+
+        async function refreshTickets() {
+            try {
+                const result = await apiRequest('/api/tickets');
+                tickets = result.tickets;
+                document.getElementById('dashboard-error').classList.add('hidden');
+                renderTickets();
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        function renderTickets() {
+            const rows = document.getElementById('ticket-rows');
+            const search = document.getElementById('ticket-search').value.trim().toLowerCase();
+            const filter = document.getElementById('ticket-filter').value;
+            rows.replaceChildren();
+            document.getElementById('metric-open').textContent = tickets.filter(ticket => ticket.status !== 'RESOLVED').length;
+            document.getElementById('metric-critical').textContent = tickets.filter(ticket => ticket.priority === 'Critical' && ticket.status !== 'RESOLVED').length;
+            document.getElementById('metric-escalated').textContent = tickets.filter(ticket => ticket.escalation?.status === 'OPEN').length;
+
+            const filtered = tickets.filter(ticket => {
+                const matchesSearch = [ticket.id, ticket.title, ticket.desc, ticket.category, ticket.author, ticket.role]
+                    .filter(Boolean).some(value => String(value).toLowerCase().includes(search));
+                const matchesFilter = filter === 'ALL'
+                    || (filter === 'ESCALATED' ? ticket.escalation?.status === 'OPEN' : ticket.status === filter);
+                return matchesSearch && matchesFilter;
+            });
+            if (!filtered.length) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.className = 'px-4 py-10 text-center text-slate-500';
+                cell.textContent = 'No matching tickets.';
+                row.append(cell);
+                rows.append(row);
+                return;
+            }
+
+            filtered.forEach(ticket => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-900/60';
+                const addCell = (text, className = '') => {
+                    const cell = document.createElement('td');
+                    cell.className = `px-4 py-3 ${className}`;
+                    cell.textContent = text;
+                    row.append(cell);
+                    return cell;
+                };
+                const subjectCell = addCell('', 'min-w-52');
+                const title = document.createElement('span');
+                title.className = 'block text-sm text-slate-200';
+                title.textContent = ticket.title;
+                const id = document.createElement('span');
+                id.className = 'block text-[10px] text-cyan-400 mt-1';
+                id.textContent = ticket.id;
+                subjectCell.append(title, id);
+                addCell(ticket.author || 'Unknown', 'text-slate-300');
+                addCell(ticket.priority || 'Medium', ticket.priority === 'Critical' ? 'text-rose-300 font-bold' : 'text-slate-300');
+                addCell(ticket.status || 'OPEN', 'text-cyan-200');
+                addCell(ticket.escalation?.status === 'OPEN' ? 'Awaiting review' : ticket.escalation?.status === 'REVIEWED' ? 'Reviewed' : '—', ticket.escalation?.status === 'OPEN' ? 'text-amber-200' : 'text-slate-500');
+                const actionCell = addCell('', 'text-right');
+                const view = document.createElement('button');
+                view.type = 'button';
+                view.className = 'rounded border border-slate-700 px-3 py-1.5 text-[10px] text-cyan-200 hover:border-cyan-400';
+                view.textContent = 'OPEN';
+                view.addEventListener('click', () => openTicket(ticket.id));
+                actionCell.append(view);
+                rows.append(row);
+            });
+        }
+
+        async function openTicket(id) {
+            try {
+                const result = await apiRequest(`/api/tickets/${encodeURIComponent(id)}`);
+                activeTicket = result.ticket;
+                document.getElementById('detail-id').textContent = activeTicket.id;
+                document.getElementById('detail-title').textContent = activeTicket.title;
+                document.getElementById('detail-meta').textContent = `${activeTicket.author || 'Unknown'} (${activeTicket.role || 'Staff'}) · ${activeTicket.category || 'Uncategorized'} · ${new Date(activeTicket.createdAt).toLocaleString()}`;
+                document.getElementById('detail-status').textContent = activeTicket.status || 'OPEN';
+                document.getElementById('detail-priority').textContent = `${activeTicket.priority || 'Medium'} · ${activeTicket.category || 'Uncategorized'}`;
+                document.getElementById('detail-description').textContent = activeTicket.desc || 'No description provided.';
+                document.getElementById('status-select').value = activeTicket.status === 'RESOLVED' ? 'RESOLVED' : 'IN_PROGRESS';
+                renderNotes(activeTicket.notes || []);
+                renderEscalation(activeTicket.escalation);
+                const dialog = document.getElementById('ticket-dialog');
+                if (!dialog.open) dialog.showModal();
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        function renderNotes(notes) {
+            const container = document.getElementById('detail-notes');
+            container.replaceChildren();
+            if (!notes.length) {
+                const empty = document.createElement('p');
+                empty.className = 'text-xs text-slate-500';
+                empty.textContent = 'No activity recorded.';
+                container.append(empty);
+                return;
+            }
+            notes.forEach(note => {
+                const item = document.createElement('article');
+                item.className = 'border-l-2 border-cyan-500/60 pl-3 py-1';
+                const meta = document.createElement('p');
+                meta.className = 'font-mono text-[10px] text-slate-500';
+                meta.textContent = typeof note === 'string' ? 'ACTIVITY' : `${note.author || 'Staff'} · ${note.role || 'Staff'} · ${note.createdAt ? new Date(note.createdAt).toLocaleString() : ''}`;
+                const text = document.createElement('p');
+                text.className = 'text-sm text-slate-200 mt-1 whitespace-pre-wrap';
+                text.textContent = typeof note === 'string' ? note : note.message;
+                item.append(meta, text);
+                container.append(item);
+            });
+        }
+
+        function renderEscalation(escalation) {
+            const state = document.getElementById('escalation-state');
+            const form = document.getElementById('escalation-form');
+            const review = document.getElementById('review-escalation');
+            if (escalation?.status === 'OPEN') {
+                state.textContent = `OPEN · Escalated by ${escalation.escalatedBy} · ${escalation.reason}`;
+                form.classList.add('hidden');
+                review.classList.toggle('hidden', currentRole !== 'SUPER ADMIN');
+            } else {
+                state.textContent = escalation?.status === 'REVIEWED'
+                    ? `REVIEWED by ${escalation.reviewedBy || 'Super Admin'} · ${escalation.reason}`
+                    : 'No escalation has been submitted.';
+                form.classList.remove('hidden');
+                review.classList.add('hidden');
+            }
+        }
+
+        function closeTicket() {
+            document.getElementById('ticket-dialog').close();
+            activeTicket = null;
+        }
+
+        async function updateActiveTicket(payload) {
+            if (!activeTicket) return;
+            try {
+                const id = activeTicket.id;
+                await apiRequest(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+                await refreshTickets();
+                await openTicket(id);
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        document.getElementById('ticket-search').addEventListener('input', renderTickets);
+        document.getElementById('ticket-filter').addEventListener('change', renderTickets);
+        document.getElementById('ticket-create-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const fields = new FormData(form);
+            try {
+                const result = await apiRequest('/api/tickets', {
+                    method: 'POST',
+                    body: JSON.stringify({ title: fields.get('title'), desc: fields.get('desc'), category: fields.get('category'), priority: fields.get('priority') })
+                });
+                form.reset();
+                form.closest('details').open = false;
+                await refreshTickets();
+                await openTicket(result.ticket.id);
+            } catch (error) {
+                showError(error);
+            }
+        });
+        document.getElementById('reply-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const note = new FormData(event.currentTarget).get('note').trim();
+            if (!note) return;
+            await updateActiveTicket({ note });
+            event.currentTarget.reset();
+        });
+        document.getElementById('escalation-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const reason = new FormData(event.currentTarget).get('reason').trim();
+            if (!reason) return;
+            await updateActiveTicket({ escalationReason: reason });
+        });
+        document.getElementById('review-escalation').addEventListener('click', () => updateActiveTicket({ resolveEscalation: true }));
+        document.getElementById('save-status').addEventListener('click', () => updateActiveTicket({ status: document.getElementById('status-select').value }));
+        document.getElementById('delete-ticket').addEventListener('click', async () => {
+            if (!activeTicket || !confirm(`Delete ticket ${activeTicket.id}? This cannot be undone.`)) return;
+            try {
+                await apiRequest(`/api/tickets/${encodeURIComponent(activeTicket.id)}`, { method: 'DELETE' });
+                closeTicket();
+                await refreshTickets();
+            } catch (error) {
+                showError(error);
+            }
+        });
+        document.getElementById('triage-button').addEventListener('click', () => {
+            const impact = Number(document.getElementById('triage-impact').value);
+            const active = document.getElementById('triage-exploitation').checked;
+            const priority = active && impact >= 2 || impact === 3 ? 'Critical' : active || impact === 2 ? 'High' : 'Medium';
+            const result = document.getElementById('triage-result');
+            result.textContent = `Suggested priority: ${priority}. Validate with the incident response policy.`;
+            result.className = `font-mono text-sm ${priority === 'Critical' ? 'text-rose-300' : priority === 'High' ? 'text-amber-200' : 'text-cyan-200'}`;
+        });
+        document.getElementById('hash-file').addEventListener('click', async () => {
+            const file = document.getElementById('evidence-file').files[0];
+            const output = document.getElementById('file-hash');
+            if (!file) {
+                output.textContent = 'Choose a file first.';
+                return;
+            }
+            if (file.size > 100 * 1024 * 1024) {
+                output.textContent = 'File exceeds the 100 MB limit.';
+                return;
+            }
+            try {
+                output.textContent = 'Calculating...';
+                const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+                const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+                output.textContent = `${file.name} · SHA-256: ${hash}`;
+            } catch {
+                output.textContent = 'Could not calculate the hash in this browser.';
+            }
+        });
+        document.querySelectorAll('.scope-check').forEach(input => input.addEventListener('change', () => {
+            const ready = [...document.querySelectorAll('.scope-check')].every(item => item.checked);
+            const result = document.getElementById('scope-result');
+            result.textContent = ready ? 'Checklist complete. Confirm the approval record before proceeding.' : 'Assessment readiness is not confirmed.';
+            result.className = `font-mono text-xs ${ready ? 'text-emerald-300' : 'text-amber-300'}`;
+        }));
+
+        async function logout() {
+            try {
+                await apiRequest('/api/logout', { method: 'POST' });
+                window.location.replace('/#portal');
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
