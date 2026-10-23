@@ -391,8 +391,14 @@
                             <input id="bootstrap-username" type="text" required minlength="3" maxlength="24" pattern="[A-Za-z0-9._-]+" value="admin" autocomplete="username" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
                         </label>
                         <label class="block text-xs font-orbitron text-slate-300">LOCAL ADMIN PASSWORD
-                            <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="At least 12 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                            <div class="mt-1 flex gap-2">
+                                <input id="bootstrap-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" class="min-w-0 flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 font-mono focus:border-amber-400 outline-none">
+                                <button id="toggle-bootstrap-password" type="button" title="Show password" aria-label="Show password" class="px-3 text-slate-300 hover:text-white"><i class="fa-solid fa-eye"></i></button>
+                                <button id="copy-bootstrap-password" type="button" title="Copy password" aria-label="Copy password" class="px-3 text-slate-300 hover:text-cyan-300"><i class="fa-regular fa-copy"></i></button>
+                            </div>
                         </label>
+                        <p id="bootstrap-password-help" class="text-[11px] text-slate-400 font-mono">A secure password is generated for this setup. Copy it and store it in a password manager; it cannot be recovered later.</p>
+                        <button id="regenerate-bootstrap-password" type="button" class="text-xs font-mono text-amber-200 hover:text-amber-100"><i class="fa-solid fa-rotate mr-1"></i>Generate another password</button>
                         <button type="submit" class="w-full py-3 rounded-xl bg-amber-300 text-slate-950 font-orbitron font-bold text-sm uppercase tracking-wider hover:bg-amber-200 transition-all">CREATE SUPER ADMIN</button>
                     </form>
                     <div id="login-message" role="status" aria-live="polite" class="hidden text-xs text-rose-300 font-mono"></div>
@@ -952,10 +958,49 @@
             localLogin.classList.toggle('hidden', setupRequired || currentAuthMode !== 'local');
             ssoLogin.classList.toggle('hidden', setupRequired || currentAuthMode !== 'sso');
             bootstrapForm.classList.toggle('hidden', !setupRequired);
+            if (setupRequired && !document.getElementById('bootstrap-password').value) generateSuperAdminPassword();
             authModeNotice.textContent = currentAuthMode === 'sso'
                 ? 'SINGLE SIGN-ON IS ACTIVE THROUGH CLOUDFLARE ACCESS.'
                 : 'LOCAL USERNAME AND PASSWORD SIGN-IN IS ACTIVE.';
         }
+
+        function generateSuperAdminPassword() {
+            const passwordInput = document.getElementById('bootstrap-password');
+            const help = document.getElementById('bootstrap-password-help');
+            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+            if (!globalThis.crypto?.getRandomValues) {
+                help.textContent = 'Secure password generation is unavailable in this browser. Use a password manager to create one.';
+                return;
+            }
+            const randomValues = crypto.getRandomValues(new Uint8Array(24));
+            passwordInput.value = Array.from(randomValues, value => alphabet[value % alphabet.length]).join('');
+            passwordInput.type = 'password';
+            document.getElementById('toggle-bootstrap-password').innerHTML = '<i class="fa-solid fa-eye"></i>';
+            document.getElementById('toggle-bootstrap-password').setAttribute('aria-label', 'Show password');
+            document.getElementById('toggle-bootstrap-password').title = 'Show password';
+            help.textContent = 'A secure password is generated for this setup. Copy it and store it in a password manager; it cannot be recovered later.';
+        }
+
+        document.getElementById('regenerate-bootstrap-password').addEventListener('click', generateSuperAdminPassword);
+        document.getElementById('toggle-bootstrap-password').addEventListener('click', event => {
+            const passwordInput = document.getElementById('bootstrap-password');
+            const showPassword = passwordInput.type === 'password';
+            passwordInput.type = showPassword ? 'text' : 'password';
+            event.currentTarget.innerHTML = `<i class="fa-solid fa-eye${showPassword ? '-slash' : ''}"></i>`;
+            event.currentTarget.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+            event.currentTarget.title = showPassword ? 'Hide password' : 'Show password';
+        });
+        document.getElementById('copy-bootstrap-password').addEventListener('click', async () => {
+            const password = document.getElementById('bootstrap-password').value;
+            const help = document.getElementById('bootstrap-password-help');
+            if (!password) return;
+            try {
+                await navigator.clipboard.writeText(password);
+                help.textContent = 'Password copied. Store it in a password manager; it cannot be recovered later.';
+            } catch {
+                help.textContent = 'Clipboard access is unavailable. Reveal the password and copy it manually.';
+            }
+        });
 
         async function checkSessionState() {
             const authContainer = document.getElementById('portal-auth-container');
