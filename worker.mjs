@@ -509,15 +509,35 @@ async function requestHandler(request, env) {
             return json({ error: 'Enter a valid username and password with 24 to 128 characters.' }, 400);
         }
         if (await env.AXIUM_KV.get(`username:${username}`)) return json({ error: 'That username is already registered.' }, 409);
-        const password = await hashPassword(body.password);
         const accountKey = `user:local:${username}`;
-        const account = { username, email: '', name: username, role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
-        await env.AXIUM_KV.put(accountKey, JSON.stringify(account));
-        await env.AXIUM_KV.put(`username:${username}`, accountKey);
-        await env.AXIUM_KV.put('system:initialized', 'true');
-        await writeAuditEvent(env, account, 'system.bootstrapped');
-        const session = await createSession(env, account, 'local');
-        return json({ authenticated: true, authMode: 'local', user: username, email: account.email, role: account.role }, 201, { 'set-cookie': session.cookie });
+        let accountSaved = false;
+        let usernameSaved = false;
+        let session;
+        let stage = 'deriving the password hash';
+        try {
+            const password = await hashPassword(body.password);
+            const account = { username, email: '', name: username, role: 'SUPER ADMIN', ...password, createdAt: new Date().toISOString() };
+            stage = 'saving the administrator account';
+            await env.AXIUM_KV.put(accountKey, JSON.stringify(account));
+            accountSaved = true;
+            stage = 'registering the administrator username';
+            await env.AXIUM_KV.put(`username:${username}`, accountKey);
+            usernameSaved = true;
+            stage = 'creating the sign-in session';
+            session = await createSession(env, account, 'local');
+            stage = 'finalizing initial setup';
+            await env.AXIUM_KV.put('system:initialized', 'true');
+            await writeAuditEvent(env, account, 'system.bootstrapped');
+            return json({ authenticated: true, authMode: 'local', user: username, email: account.email, role: account.role }, 201, { 'set-cookie': session.cookie });
+        } catch (error) {
+            console.error(`Initial Super Admin setup failed while ${stage}:`, error);
+            const cleanup = [env.AXIUM_KV.delete('system:initialized')];
+            if (usernameSaved) cleanup.push(env.AXIUM_KV.delete(`username:${username}`));
+            if (accountSaved) cleanup.push(env.AXIUM_KV.delete(accountKey));
+            if (session) cleanup.push(env.AXIUM_KV.delete(`session:${session.tokenHash}`));
+            await Promise.allSettled(cleanup);
+            return json({ error: `Initial setup failed while ${stage}. Check Worker logs and AXIUM_KV write access before retrying.` }, 503);
+        }
     }
 
     if (path === '/api/login' && method === 'POST') {
