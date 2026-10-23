@@ -139,19 +139,39 @@
 
         <section id="security-toolkit" class="space-y-4 scroll-mt-6">
             <div>
-                <h2 class="font-orbitron text-lg font-bold text-white">Defensive Security Toolkit</h2>
-                <p class="font-mono text-xs text-slate-400 mt-1">Use only for assets and work covered by explicit authorization.</p>
+                <h2 class="font-orbitron text-lg font-bold text-white">Authorized Penetration-Test Workbench</h2>
+                <p class="font-mono text-xs text-slate-400 mt-1">Plan scope, assess controls, preserve evidence, and report findings for approved engagements.</p>
             </div>
             <div class="grid gap-4 lg:grid-cols-2">
                 <section class="glass-panel rounded-lg p-5 space-y-4">
                     <div>
-                        <h3 class="font-orbitron font-semibold text-cyan-200">Authorization Check</h3>
-                        <p class="text-xs text-slate-400 mt-1">Confirm written approval, scope, and test window before assessment work.</p>
+                        <h3 class="font-orbitron font-semibold text-cyan-200">Engagement Scope & Authorization</h3>
+                        <p class="text-xs text-slate-400 mt-1">Keep scope notes in this browser session; confirm them against the signed rules of engagement.</p>
                     </div>
+                    <label class="block text-xs font-mono text-slate-300">APPROVED ASSETS
+                        <textarea id="approved-scope" rows="2" placeholder="List only assets explicitly approved for this engagement" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                    </label>
+                    <label class="block text-xs font-mono text-slate-300">EXCLUDED ASSETS / ACTIVITIES
+                        <textarea id="excluded-scope" rows="2" placeholder="Document exclusions and prohibited actions" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                    </label>
+                    <label class="block text-xs font-mono text-slate-300">APPROVED TEST WINDOW
+                        <input id="test-window" type="text" placeholder="Date, time zone, and stop time" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                    </label>
                     <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Written approval is recorded</label>
-                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Target assets and exclusions are explicit</label>
-                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Test window and impact limits are agreed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Emergency contact and stop conditions are agreed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input class="scope-check accent-cyan-400" type="checkbox"> Data handling and reporting rules are agreed</label>
+                    <button id="check-scope" type="button" class="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-orbitron font-bold text-cyan-200">VERIFY PRE-FLIGHT CHECKLIST</button>
                     <p id="scope-result" class="font-mono text-xs text-amber-300" aria-live="polite">Assessment readiness is not confirmed.</p>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-3">
+                    <h3 class="font-orbitron font-semibold text-cyan-200">Assessment Plan</h3>
+                    <p class="text-xs text-slate-400">Track broad control areas without running tests against a target.</p>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Asset inventory and ownership reviewed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Identity, access, and account lifecycle controls reviewed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Secure configuration and patch evidence reviewed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Logging, alerting, backup, and recovery controls reviewed</label>
+                    <label class="flex gap-3 text-sm text-slate-300"><input type="checkbox" class="accent-cyan-400"> Findings mapped to owner, impact, and remediation</label>
                 </section>
 
                 <section class="glass-panel rounded-lg p-5 space-y-4">
@@ -186,13 +206,52 @@
                 </section>
 
                 <section class="glass-panel rounded-lg p-5 space-y-3">
+                    <div>
+                        <h3 class="font-orbitron font-semibold text-cyan-200">Finding & Report Builder</h3>
+                        <p class="text-xs text-slate-400 mt-1">Create a concise, remediation-focused record for an in-scope finding.</p>
+                    </div>
+                    <form id="finding-form" class="space-y-3">
+                        <label class="block text-xs font-mono text-slate-300">FINDING TITLE
+                            <input name="title" required maxlength="120" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">APPROVED ASSET / COMPONENT
+                            <input name="asset" required maxlength="200" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">TICKET CATEGORY
+                            <select name="category" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option>Digital Vault</option><option>Forensic Analysis</option><option selected>Network Security</option><option>Executive Advisory</option></select>
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">SEVERITY
+                            <select name="severity" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option>Informational</option><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select>
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">OBSERVED IMPACT
+                            <textarea name="impact" required maxlength="1500" rows="2" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">EVIDENCE REFERENCE / SHA-256
+                            <input name="evidence" maxlength="300" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">
+                        </label>
+                        <label class="block text-xs font-mono text-slate-300">RECOMMENDED REMEDIATION
+                            <textarea name="remediation" required maxlength="1500" rows="2" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"></textarea>
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-xs font-orbitron font-bold text-cyan-200">GENERATE REPORT</button>
+                            <button id="copy-report" type="button" class="hidden rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-200">COPY REPORT</button>
+                            <button id="create-finding-ticket" type="button" class="hidden rounded-lg bg-cyan-400 px-3 py-2 text-xs font-orbitron font-bold text-slate-950">CREATE TICKET</button>
+                        </div>
+                    </form>
+                    <textarea id="finding-report" readonly rows="8" placeholder="Generated report preview" class="w-full rounded-lg border border-slate-700 bg-slate-950 p-3 font-mono text-xs text-slate-200"></textarea>
+                    <p id="finding-feedback" class="font-mono text-xs text-cyan-200" aria-live="polite"></p>
+                </section>
+
+                <section class="glass-panel rounded-lg p-5 space-y-3">
                     <h3 class="font-orbitron font-semibold text-cyan-200">Security References</h3>
                     <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://owasp.org/www-project-web-security-testing-guide/" target="_blank" rel="noopener noreferrer">OWASP Web Security Testing Guide <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                    <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://csrc.nist.gov/pubs/sp/800/115/final" target="_blank" rel="noopener noreferrer">NIST SP 800-115 Assessment Planning <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                    <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://owasp.org/www-project-application-security-verification-standard/" target="_blank" rel="noopener noreferrer">OWASP Application Security Verification Standard <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
                     <a class="flex items-center justify-between border-b border-slate-800 py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://www.cisa.gov/stopransomware" target="_blank" rel="noopener noreferrer">CISA Incident Response Resources <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
                     <a class="flex items-center justify-between py-2 text-sm text-slate-300 hover:text-cyan-200" href="https://www.nist.gov/cyberframework" target="_blank" rel="noopener noreferrer">NIST Cybersecurity Framework <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
                 </section>
             </div>
-            <p class="font-mono text-[11px] text-slate-500">This workspace provides defensive triage and response aids. It does not run scans, exploit code, or test third-party targets.</p>
+            <p class="font-mono text-[11px] text-slate-500">Use only within written authorization and agreed rules of engagement. This workbench does not run scans, exploit code, or test targets.</p>
         </section>
 
         <p id="dashboard-error" class="hidden font-mono text-sm text-rose-300" role="alert"></p>
@@ -480,6 +539,20 @@
                 showError(error);
             }
         });
+        function checkScopeReadiness() {
+            const approvedScope = document.getElementById('approved-scope').value.trim();
+            const excludedScope = document.getElementById('excluded-scope').value.trim();
+            const testWindow = document.getElementById('test-window').value.trim();
+            const checksComplete = [...document.querySelectorAll('.scope-check')].every(item => item.checked);
+            const ready = Boolean(approvedScope && excludedScope && testWindow && checksComplete);
+            const result = document.getElementById('scope-result');
+            result.textContent = ready
+                ? 'Pre-flight complete. Verify every detail against the signed rules of engagement.'
+                : 'Incomplete. Record scope, exclusions, test window, approval, and stop conditions.';
+            result.className = `font-mono text-xs ${ready ? 'text-emerald-300' : 'text-amber-300'}`;
+        }
+        document.getElementById('check-scope').addEventListener('click', checkScopeReadiness);
+        document.querySelectorAll('.scope-check, #approved-scope, #excluded-scope, #test-window').forEach(input => input.addEventListener('input', checkScopeReadiness));
         document.getElementById('triage-button').addEventListener('click', () => {
             const impact = Number(document.getElementById('triage-impact').value);
             const active = document.getElementById('triage-exploitation').checked;
@@ -508,12 +581,61 @@
                 output.textContent = 'Could not calculate the hash in this browser.';
             }
         });
-        document.querySelectorAll('.scope-check').forEach(input => input.addEventListener('change', () => {
-            const ready = [...document.querySelectorAll('.scope-check')].every(item => item.checked);
-            const result = document.getElementById('scope-result');
-            result.textContent = ready ? 'Checklist complete. Confirm the approval record before proceeding.' : 'Assessment readiness is not confirmed.';
-            result.className = `font-mono text-xs ${ready ? 'text-emerald-300' : 'text-amber-300'}`;
-        }));
+        document.getElementById('finding-form').addEventListener('submit', event => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            const report = [
+                `Finding: ${fields.get('title').trim()}`,
+                `Approved asset/component: ${fields.get('asset').trim()}`,
+                `Category: ${fields.get('category')}`,
+                `Severity: ${fields.get('severity')}`,
+                `Observed impact: ${fields.get('impact').trim()}`,
+                `Evidence reference / SHA-256: ${fields.get('evidence').trim() || 'Not provided'}`,
+                `Recommended remediation: ${fields.get('remediation').trim()}`,
+                'Assessment note: Validate this finding and its severity against the authorized engagement scope.'
+            ].join('\n\n');
+            document.getElementById('finding-report').value = report;
+            document.getElementById('copy-report').classList.remove('hidden');
+            document.getElementById('create-finding-ticket').classList.remove('hidden');
+            document.getElementById('finding-feedback').textContent = 'Report generated locally.';
+        });
+        document.getElementById('finding-form').addEventListener('input', () => {
+            document.getElementById('finding-report').value = '';
+            document.getElementById('copy-report').classList.add('hidden');
+            document.getElementById('create-finding-ticket').classList.add('hidden');
+            document.getElementById('finding-feedback').textContent = '';
+        });
+        document.getElementById('copy-report').addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(document.getElementById('finding-report').value);
+                document.getElementById('finding-feedback').textContent = 'Report copied.';
+            } catch {
+                document.getElementById('finding-feedback').textContent = 'Clipboard access is unavailable. Select and copy the report text.';
+            }
+        });
+        document.getElementById('create-finding-ticket').addEventListener('click', async () => {
+            const form = document.getElementById('finding-form');
+            const fields = new FormData(form);
+            const priority = fields.get('severity') === 'Critical' ? 'Critical'
+                : fields.get('severity') === 'High' ? 'High'
+                    : fields.get('severity') === 'Low' || fields.get('severity') === 'Informational' ? 'Low' : 'Medium';
+            try {
+                const result = await apiRequest('/api/tickets', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        title: `Security finding: ${fields.get('title').trim()}`.slice(0, 120),
+                        desc: document.getElementById('finding-report').value,
+                        category: fields.get('category'),
+                        priority
+                    })
+                });
+                document.getElementById('finding-feedback').textContent = `Created ticket ${result.ticket.id}.`;
+                await refreshTickets();
+                await openTicket(result.ticket.id);
+            } catch (error) {
+                showError(error);
+            }
+        });
 
         async function logout() {
             try {
