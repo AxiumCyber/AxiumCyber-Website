@@ -604,7 +604,7 @@ async function requestHandler(request, env) {
         if (!USERNAME_PATTERN.test(username)) return json({ error: 'Username must be 3 to 24 characters using letters, numbers, dots, underscores, or hyphens.' }, 400);
         if (!EMAIL_PATTERN.test(email) || email.length > 254) return json({ error: 'Enter a valid email address for the staff SSO identity.' }, 400);
         if (password.length < 12 || password.length > 128) return json({ error: 'Password must be 12 to 128 characters.' }, 400);
-        if (!ROLES.includes(body.role) || body.role === 'SUPER ADMIN') return json({ error: 'Choose a valid non-super-admin role.' }, 400);
+        if (!ROLES.includes(body.role)) return json({ error: 'Choose a valid role.' }, 400);
         if (await getAccount(env, email) || await env.AXIUM_KV.get(`username:${username}`)) return json({ error: 'That username or SSO email already has a portal account.' }, 409);
         const passwordFields = await hashPassword(password);
         const user = { username, email, name: email, role: body.role, ...passwordFields, createdAt: new Date().toISOString() };
