@@ -151,7 +151,7 @@ Enter the administrator's username and a strong local password with at least 12 
 
 ## Step 8: Assign Staff Roles
 
-Sign in as the Super Admin. In **Staff Identity Registry**, add a username, exact SSO email, and local password for each account, then assign Super Admin, Admin, Tech Support, Moderator, or Staff. Grant Super Admin only to trusted administrators; this role has full portal control. Only an existing Super Admin can create accounts or assign this role, and Super Admin accounts are protected from deletion. Passwords are required even if you expect to use SSO so the Super Admin can switch the portal back to local mode later. Staff may use their local credentials while local mode is active.
+Sign in as the Super Admin. In **Staff Identity Registry**, add a username, exact SSO email, and local password for each staff member, then assign Admin, Tech Support, Moderator, or Staff. Passwords are required even if you expect to use SSO so the Super Admin can switch the portal back to local mode later. Staff may use their local credentials while local mode is active.
 
 The old browser-only demo accounts (`admin` / `anubis2026` and `analyst` / `cyber2026`) are not Cloudflare accounts and will not work. Create accounts in the registry.
 

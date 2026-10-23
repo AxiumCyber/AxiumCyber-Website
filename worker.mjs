@@ -1,6 +1,6 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,24}$/;
-const ROLES = ['SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff'];
+const ROLES = ['OWNER', 'SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff', 'Client'];
 const SESSION_COOKIE = '__Host-axium_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 const PASSWORD_ITERATIONS = 100000;
@@ -177,7 +177,7 @@ async function getSession(request, env) {
 }
 
 function requireRole(account, roles) {
-    return roles.includes(account.role);
+    return account.role === 'OWNER' || roles.includes(account.role);
 }
 
 function assertSameOrigin(request) {
@@ -214,6 +214,34 @@ async function getTicket(env, id) {
 
 async function saveTicket(env, ticket) {
     await env.AXIUM_KV.put(`ticket:${ticket.id}`, JSON.stringify(ticket));
+}
+
+async function getClientProfile(env, client) {
+    return await env.AXIUM_KV.get(`client:${client.username}`, 'json') || {
+        username: client.username,
+        email: client.email,
+        company: '',
+        contactName: client.name || client.username,
+        phone: '',
+        timezone: '',
+        history: []
+    };
+}
+
+async function listClientContracts(env, username) {
+    return listRecords(env.AXIUM_KV, `client-contract:${username}:`);
+}
+
+function clientOwnsTicket(ticket, account) {
+    return ticket.clientUsername === account.username
+        || (ticket.role === 'Client' && ticket.author === account.username);
+}
+
+function toClientTicket(ticket) {
+    const visible = { ...ticket, replies: Array.isArray(ticket.replies) ? ticket.replies : [] };
+    delete visible.notes;
+    delete visible.messaging;
+    return visible;
 }
 
 async function writeAuditEvent(env, account, action, details = {}) {
@@ -617,14 +645,22 @@ async function requestHandler(request, env) {
     const userMatch = path.match(/^\/api\/users\/([^/]+)$/);
     if (userMatch && method === 'DELETE') {
         if (!requireRole(account, ['SUPER ADMIN'])) return json({ error: 'Super Admin role required.' }, 403);
-        let email;
-        try { email = decodeURIComponent(userMatch[1]).trim().toLowerCase(); } catch { return json({ error: 'Invalid email address.' }, 400); }
-        const target = await getAccount(env, email);
+        let identifier;
+        try { identifier = decodeURIComponent(userMatch[1]).trim().toLowerCase(); } catch { return json({ error: 'Invalid account identifier.' }, 400); }
+        const target = await getAccount(env, identifier) || await getAccountByUsername(env, identifier);
         if (!target) return json({ error: 'Account not found.' }, 404);
-        if (email === account.email || target.role === 'SUPER ADMIN') return json({ error: 'The active or protected Super Admin account cannot be deleted.' }, 400);
-        await env.AXIUM_KV.delete(`user:${email}`);
+        if (target.username === account.username || (account.email && target.email === account.email)) return json({ error: 'The active account cannot be deleted.' }, 400);
+        if (target.role === 'SUPER ADMIN' && account.role !== 'OWNER') return json({ error: 'Only the Owner can delete a Super Admin account.' }, 403);
+        if (target.role === 'OWNER') {
+            if (account.role !== 'OWNER') return json({ error: 'Only the Owner can delete an Owner account.' }, 403);
+            const owners = (await listUsers(env)).filter(user => user.role === 'OWNER');
+            if (owners.length <= 1) return json({ error: 'The last Owner account cannot be deleted.' }, 409);
+        }
+        const usernameKey = `username:${target.username}`;
+        const accountKey = await env.AXIUM_KV.get(usernameKey);
+        await env.AXIUM_KV.delete(target.email ? `user:${target.email}` : accountKey);
         await env.AXIUM_KV.delete(`username:${target.username}`);
-        await writeAuditEvent(env, account, 'user.deleted', { username: target.username, email, role: target.role });
+        await writeAuditEvent(env, account, 'user.deleted', { username: target.username, email: target.email, role: target.role });
         return json({ ok: true });
     }
 
