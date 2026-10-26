@@ -90,7 +90,7 @@ async function sendPortalEmail(env, { to, subject, link, action }) {
             html: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`
         })
     });
-    if (!response.ok) throw Object.assign(new Error(`Client email delivery failed (${response.status}).`), { status: 502 });
+    if (!response.ok) throw Object.assign(new Error(`Client email delivery failed (${response.status}).`), { status: 502, upstreamStatus: response.status });
 }
 
 async function createClientActionToken(env, account, purpose, origin, ttlSeconds) {
@@ -605,7 +605,7 @@ async function requestHandler(request, env) {
             await sendPortalEmail(env, { to: email, subject: 'Verify your Axium Cyber client account', link: action.url, action: 'verify your email address' });
             return json({ message: 'Account created. Check your email for a verification link before signing in.' }, 201);
         } catch (error) {
-            console.error('Client registration could not be completed:', error.status || 'email or storage error');
+            console.error('Client registration could not be completed:', error.upstreamStatus ? `Resend HTTP ${error.upstreamStatus}` : error.status || 'email or storage error');
             const cleanup = [];
             if (accountSaved) cleanup.push(env.AXIUM_KV.delete(accountKey));
             if (usernameSaved) cleanup.push(env.AXIUM_KV.delete(`username:${username}`));
