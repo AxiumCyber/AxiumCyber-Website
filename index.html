@@ -104,7 +104,7 @@
                 <a href="/staff-dashboard.html" id="nav-staff-dashboard" target="_blank" rel="noopener" class="hidden text-slate-400 hover:text-cyber-cyan transition-colors items-center space-x-2 py-2 border-b-2 border-transparent">
                     <i class="fa-solid fa-chart-line"></i><span>Staff Dashboard</span>
                 </a>
-                <a href="/client-portal.html" id="nav-client-portal" class="hidden text-slate-400 hover:text-cyber-cyan transition-colors items-center space-x-2 py-2 border-b-2 border-transparent">
+                <a href="/client-portal.html" id="nav-client-portal" class="text-slate-400 hover:text-cyber-cyan transition-colors flex items-center space-x-2 py-2 border-b-2 border-transparent">
                     <i class="fa-solid fa-building-user"></i><span>Client Portal</span>
                 </a>
             </nav>
@@ -128,7 +128,7 @@
             <button onclick="switchTab('public'); toggleMobileMenu();" class="block w-full text-left py-2 text-cyan-400"><i class="fa-solid fa-shield-halved mr-2"></i>Public HQ</button>
             <button onclick="openPortalTab(); toggleMobileMenu();" class="block w-full text-left py-2 text-slate-300"><i class="fa-solid fa-terminal mr-2"></i>Staff & Admin Portal</button>
             <a href="/staff-dashboard.html" id="mobile-nav-staff-dashboard" target="_blank" rel="noopener" class="hidden w-full text-left py-2 text-slate-300"><i class="fa-solid fa-chart-line mr-2"></i>Staff Dashboard</a>
-            <a href="/client-portal.html" id="mobile-nav-client-portal" class="hidden w-full text-left py-2 text-slate-300"><i class="fa-solid fa-building-user mr-2"></i>Client Portal</a>
+            <a href="/client-portal.html" id="mobile-nav-client-portal" class="w-full text-left py-2 text-slate-300"><i class="fa-solid fa-building-user mr-2"></i>Client Portal</a>
         </div>
     </header>
 
@@ -1041,10 +1041,10 @@
                     dashboardNav.classList.remove('flex');
                     mobileDashboardNav.classList.add('hidden');
                     mobileDashboardNav.classList.remove('block');
-                    clientNav.classList.add('hidden');
-                    clientNav.classList.remove('flex');
-                    mobileClientNav.classList.add('hidden');
-                    mobileClientNav.classList.remove('block');
+                    clientNav.classList.remove('hidden');
+                    clientNav.classList.add('flex');
+                    mobileClientNav.classList.remove('hidden');
+                    mobileClientNav.classList.add('block');
                     updateAuthModeControls(session.setupRequired);
                     message.classList.add('hidden');
                     document.getElementById('auth-mode-btn').classList.toggle('hidden', true);
@@ -1066,10 +1066,10 @@
                 dashboardNav.classList.add('flex');
                 mobileDashboardNav.classList.remove('hidden');
                 mobileDashboardNav.classList.add('block');
-                clientNav.classList.add('hidden');
-                clientNav.classList.remove('flex');
-                mobileClientNav.classList.add('hidden');
-                mobileClientNav.classList.remove('block');
+                clientNav.classList.remove('hidden');
+                clientNav.classList.add('flex');
+                mobileClientNav.classList.remove('hidden');
+                mobileClientNav.classList.add('block');
                 document.getElementById('session-user-badge').innerText = currentUser;
                 document.getElementById('session-role-badge').innerText = currentRole;
                 document.getElementById('active-role-label').innerText = currentRole.toUpperCase();
@@ -1092,10 +1092,10 @@
                 dashboardNav.classList.remove('flex');
                 mobileDashboardNav.classList.add('hidden');
                 mobileDashboardNav.classList.remove('block');
-                clientNav.classList.add('hidden');
-                clientNav.classList.remove('flex');
-                mobileClientNav.classList.add('hidden');
-                mobileClientNav.classList.remove('block');
+                clientNav.classList.remove('hidden');
+                clientNav.classList.add('flex');
+                mobileClientNav.classList.remove('hidden');
+                mobileClientNav.classList.add('block');
                 updateAuthModeControls();
                 document.getElementById('auth-mode-btn').classList.add('hidden');
                 message.textContent = `Portal connection failed: ${error.message}`;

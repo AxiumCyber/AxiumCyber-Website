@@ -48,6 +48,72 @@
             <p class="font-mono text-xs text-slate-400">Profile, agreements, service records, and support</p>
         </section>
 
+        <section id="client-auth-panel" class="hidden mx-auto max-w-xl panel rounded-lg p-5 sm:p-7 space-y-5" aria-labelledby="client-auth-title">
+            <header class="space-y-2">
+                <p class="font-mono text-xs tracking-widest text-cyan-400">CLIENT ACCOUNT ACCESS</p>
+                <h2 id="client-auth-title" class="font-orbitron text-lg font-bold text-white">Sign in</h2>
+            </header>
+            <nav class="flex flex-wrap gap-2 border-b border-slate-800 pb-3" aria-label="Client account actions">
+                <button type="button" data-client-auth-view="login" class="rounded border border-cyan-500/40 px-3 py-2 text-xs text-cyan-200">SIGN IN</button>
+                <button type="button" data-client-auth-view="register" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">CREATE ACCOUNT</button>
+                <button type="button" data-client-auth-view="recover" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RECOVER ACCOUNT</button>
+                <button type="button" data-client-auth-view="verification" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RESEND VERIFICATION</button>
+            </nav>
+            <p id="client-auth-message" class="hidden rounded border border-cyan-500/30 bg-cyan-950/30 p-3 text-sm text-cyan-100" role="status" aria-live="polite"></p>
+
+            <form id="client-login-form" class="space-y-3">
+                <label class="block text-xs font-mono text-slate-300">EMAIL ADDRESS
+                    <input name="email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <label class="block text-xs font-mono text-slate-300">PASSWORD
+                    <input name="password" type="password" required maxlength="128" autocomplete="current-password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <button class="w-full rounded-lg bg-cyan-400 px-4 py-3 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">SIGN IN</button>
+            </form>
+
+            <form id="client-register-form" class="hidden space-y-3">
+                <label class="block text-xs font-mono text-slate-300">EMAIL ADDRESS
+                    <input name="email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <label class="block text-xs font-mono text-slate-300">PHONE NUMBER
+                    <input name="phone" type="tel" required minlength="5" maxlength="40" autocomplete="tel" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <label class="block text-xs font-mono text-slate-300">PASSWORD
+                    <input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <p class="text-xs text-slate-400">Use at least 12 characters. We’ll email a verification link before account access is enabled.</p>
+                <button class="w-full rounded-lg bg-cyan-400 px-4 py-3 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">CREATE CLIENT ACCOUNT</button>
+            </form>
+
+            <form id="client-recovery-form" class="hidden space-y-3">
+                <p class="text-sm text-slate-300">Enter the email address on your account. If it matches a client account, we’ll send a time-limited recovery link.</p>
+                <label class="block text-xs font-mono text-slate-300">EMAIL ADDRESS
+                    <input name="email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <button class="w-full rounded-lg border border-cyan-500/50 px-4 py-3 text-xs font-orbitron font-bold text-cyan-200 hover:bg-cyan-500/10">EMAIL RECOVERY LINK</button>
+            </form>
+
+            <form id="client-verification-form" class="hidden space-y-3">
+                <p class="text-sm text-slate-300">Request another verification link for a pending client account.</p>
+                <label class="block text-xs font-mono text-slate-300">EMAIL ADDRESS
+                    <input name="email" type="email" required maxlength="254" autocomplete="email" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <button class="w-full rounded-lg border border-cyan-500/50 px-4 py-3 text-xs font-orbitron font-bold text-cyan-200 hover:bg-cyan-500/10">RESEND VERIFICATION LINK</button>
+            </form>
+
+            <form id="client-reset-form" class="hidden space-y-3">
+                <p class="text-sm text-slate-300">Choose a new password for your client account.</p>
+                <label class="block text-xs font-mono text-slate-300">NEW PASSWORD
+                    <input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <label class="block text-xs font-mono text-slate-300">CONFIRM NEW PASSWORD
+                    <input name="confirmPassword" type="password" required minlength="12" maxlength="128" autocomplete="new-password" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-3 text-sm text-white">
+                </label>
+                <button class="w-full rounded-lg bg-cyan-400 px-4 py-3 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">UPDATE PASSWORD</button>
+            </form>
+        </section>
+
+        <div id="client-workspace" class="hidden space-y-8">
         <section class="grid gap-4 lg:grid-cols-2">
             <section class="panel rounded-lg p-5 space-y-4">
                 <header class="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -92,9 +158,26 @@
         </section>
 
         <section class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800">
+                <div class="flex gap-2" role="tablist" aria-label="Client help">
+                    <button id="resources-tab" type="button" role="tab" aria-selected="true" aria-controls="resources-panel" class="border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200">RESOURCES</button>
+                    <button id="support-tab" type="button" role="tab" aria-selected="false" aria-controls="support-panel" class="border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white">SUPPORT</button>
+                </div>
+            </div>
+
+            <section id="resources-panel" role="tabpanel" aria-labelledby="resources-tab" class="space-y-5">
+                <header>
+                    <h2 class="font-orbitron text-lg font-bold text-white">Troubleshooting resources</h2>
+                    <p class="font-mono text-xs text-slate-400 mt-1">Choose the issue you’re seeing for practical checks and safe diagnostic tools.</p>
+                </header>
+                <div id="resource-guides" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
+                <article id="resource-detail" class="panel rounded-lg p-5 space-y-5" aria-live="polite"></article>
+            </section>
+
+            <section id="support-panel" role="tabpanel" aria-labelledby="support-tab" class="hidden space-y-4">
             <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
                 <div><h2 class="font-orbitron text-lg font-bold text-white">Support Tickets</h2><p class="font-mono text-xs text-slate-400 mt-1">Only you and authorized support staff can access your tickets.</p></div>
-                <button id="refresh-tickets" type="button" title="Refresh tickets" class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-cyan-400"><i class="fa-solid fa-rotate mr-2"></i>Refresh</button>
+                <button id="refresh-tickets" type="button" title="Refresh tickets" class="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-cyan-400"><i class="fa-solid fa-rotate mr-2"></i>Refresh tickets</button>
             </header>
             <div class="grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                 <section class="panel rounded-lg p-5 space-y-4">
@@ -134,14 +217,210 @@
                     </div>
                 </section>
             </div>
+            </section>
         </section>
 
         <p id="portal-error" class="hidden rounded-lg border border-rose-500/30 bg-rose-950/30 p-3 font-mono text-xs text-rose-200" role="alert"></p>
+        </div>
     </main>
 
     <script>
         let clientTickets = [];
         let activeTicketId = null;
+        let clientAuthView = 'login';
+        let recoveryToken = '';
+        const resourceIssues = [
+            {
+                id: 'vault', title: 'Digital Vault access', category: 'Digital Vault', priority: 'Medium',
+                summary: 'Trouble signing in, opening a vault, or accessing a shared file.',
+                steps: [
+                    'Confirm you are using the correct organization portal and that your connection is online.',
+                    'Check that your device date and time are set automatically, then reload the page.',
+                    'Try a private browser window or another supported browser. Do not share passwords or recovery codes with support.',
+                    'If access is still blocked, note the time, browser, and exact error message. Do not send confidential files through public upload services.'
+                ],
+                tools: [{ label: 'Check portal name resolution', command: 'nslookup <portal-hostname>' }]
+            },
+            {
+                id: 'incident', title: 'Possible security incident', category: 'Forensic Analysis', priority: 'Critical',
+                summary: 'Unexpected account activity, suspicious messages, or a device behaving unusually.',
+                steps: [
+                    'Use a known-good device to contact your security team promptly. Choose Critical priority when submitting the ticket.',
+                    'Record what happened, when it started, affected accounts or devices, and any visible alert text.',
+                    'Do not delete messages, run cleanup tools, reset affected devices, or forward suspicious attachments; these actions can remove useful evidence.',
+                    'Follow your organization’s incident-response instructions. If you suspect active account misuse, tell support which account is affected without sending its password.'
+                ],
+                tools: []
+            },
+            {
+                id: 'network', title: 'Network or service unavailable', category: 'Network Security', priority: 'High',
+                summary: 'A portal or service will not load, times out, or appears unreachable.',
+                steps: [
+                    'Check whether other trusted sites work and whether coworkers on the same network see the same issue.',
+                    'Retry once from your organization’s approved alternate network, if available. Avoid public Wi-Fi for sensitive work.',
+                    'Run the DNS lookup below with your service hostname in place of the placeholder. It only checks name resolution.',
+                    'Include the service hostname, approximate time, network type, and exact error in your support request.'
+                ],
+                tools: [
+                    { label: 'Windows DNS lookup', command: 'nslookup <service-hostname>' },
+                    { label: 'macOS / Linux DNS lookup', command: 'dig +short <service-hostname>' }
+                ]
+            },
+            {
+                id: 'configuration', title: 'Setup or configuration', category: 'Executive Advisory', priority: 'Medium',
+                summary: 'You need help with a new setup, access change, or service configuration.',
+                steps: [
+                    'Describe the expected outcome and the step where you got stuck.',
+                    'Note relevant software names and versions, recent changes, and any displayed error codes.',
+                    'Do not include passwords, API keys, private keys, or other secrets in screenshots or ticket details.',
+                    'If a change could affect other users, pause before repeating it and ask support to review the next step.'
+                ],
+                tools: []
+            }
+        ];
+
+        function setClientAuthView(view) {
+            clientAuthView = view;
+            const views = {
+                login: ['client-login-form', 'Sign in'],
+                register: ['client-register-form', 'Create a client account'],
+                recover: ['client-recovery-form', 'Recover your account'],
+                verification: ['client-verification-form', 'Verify your email'],
+                reset: ['client-reset-form', 'Choose a new password']
+            };
+            for (const [id] of Object.values(views)) document.getElementById(id).classList.add('hidden');
+            document.getElementById(views[view][0]).classList.remove('hidden');
+            document.getElementById('client-auth-title').textContent = views[view][1];
+        }
+
+        function showClientAuth(message = '', view = clientAuthView) {
+            document.getElementById('client-workspace').classList.add('hidden');
+            document.getElementById('client-auth-panel').classList.remove('hidden');
+            setClientAuthView(view);
+            const output = document.getElementById('client-auth-message');
+            output.textContent = message;
+            output.classList.toggle('hidden', !message);
+        }
+
+        function switchHelpTab(tab) {
+            const resourcesActive = tab === 'resources';
+            document.getElementById('resources-tab').setAttribute('aria-selected', String(resourcesActive));
+            document.getElementById('support-tab').setAttribute('aria-selected', String(!resourcesActive));
+            document.getElementById('resources-tab').className = resourcesActive
+                ? 'border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200'
+                : 'border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white';
+            document.getElementById('support-tab').className = resourcesActive
+                ? 'border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white'
+                : 'border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200';
+            document.getElementById('resources-panel').classList.toggle('hidden', !resourcesActive);
+            document.getElementById('support-panel').classList.toggle('hidden', resourcesActive);
+        }
+
+        function renderResourceGuide(issue) {
+            const detail = document.getElementById('resource-detail');
+            detail.replaceChildren();
+            const heading = document.createElement('div');
+            const title = document.createElement('h3');
+            title.className = 'font-orbitron font-semibold text-cyan-200';
+            title.textContent = issue.title;
+            const summary = document.createElement('p');
+            summary.className = 'mt-1 text-sm text-slate-300';
+            summary.textContent = issue.summary;
+            heading.append(title, summary);
+
+            const content = document.createElement('div');
+            content.className = 'grid gap-5 lg:grid-cols-2';
+            const checklist = document.createElement('div');
+            const checklistTitle = document.createElement('h4');
+            checklistTitle.className = 'font-mono text-xs uppercase tracking-wider text-slate-400';
+            checklistTitle.textContent = 'Recommended checks';
+            const steps = document.createElement('ol');
+            steps.className = 'mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-200 marker:text-cyan-400';
+            issue.steps.forEach(step => {
+                const item = document.createElement('li');
+                item.textContent = step;
+                steps.append(item);
+            });
+            checklist.append(checklistTitle, steps);
+            content.append(checklist);
+
+            if (issue.tools.length) {
+                const tools = document.createElement('div');
+                const toolsTitle = document.createElement('h4');
+                toolsTitle.className = 'font-mono text-xs uppercase tracking-wider text-slate-400';
+                toolsTitle.textContent = 'Read-only diagnostic commands';
+                tools.append(toolsTitle);
+                issue.tools.forEach(tool => {
+                    const block = document.createElement('div');
+                    block.className = 'mt-3 rounded-lg border border-slate-800 bg-slate-950 p-3';
+                    const label = document.createElement('p');
+                    label.className = 'text-xs text-slate-300';
+                    label.textContent = tool.label;
+                    const command = document.createElement('code');
+                    command.className = 'mt-2 block break-all font-mono text-xs text-emerald-300';
+                    command.textContent = tool.command;
+                    const copy = document.createElement('button');
+                    copy.type = 'button';
+                    copy.className = 'mt-2 text-xs text-cyan-300 hover:text-white';
+                    copy.innerHTML = '<i class="fa-regular fa-copy mr-1" aria-hidden="true"></i>Copy command';
+                    copy.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(tool.command);
+                            copy.lastChild.textContent = 'Copied';
+                        } catch {
+                            copy.lastChild.textContent = 'Clipboard unavailable';
+                        }
+                    });
+                    block.append(label, command, copy);
+                    tools.append(block);
+                });
+                content.append(tools);
+            }
+
+            const footer = document.createElement('div');
+            footer.className = 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-800 pt-4';
+            const note = document.createElement('p');
+            note.className = 'text-xs text-slate-400';
+            note.textContent = 'Still having trouble? Send these details to the support team.';
+            const escalate = document.createElement('button');
+            escalate.type = 'button';
+            escalate.className = 'inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 py-2.5 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300';
+            escalate.innerHTML = '<i class="fa-solid fa-life-ring" aria-hidden="true"></i>SUBMIT A SUPPORT TICKET';
+            escalate.addEventListener('click', () => {
+                const form = document.getElementById('ticket-form');
+                form.elements.title.value = issue.title;
+                form.elements.category.value = issue.category;
+                form.elements.priority.value = issue.priority;
+                form.elements.desc.value = `Issue: ${issue.title}\n\nChecks already tried:\n\nWhat happened and when:\n`;
+                switchHelpTab('support');
+                form.elements.desc.focus();
+            });
+            footer.append(note, escalate);
+            detail.append(heading, content, footer);
+        }
+
+        function renderResourceIssues() {
+            const list = document.getElementById('resource-guides');
+            resourceIssues.forEach((issue, index) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'panel rounded-lg p-4 text-left transition hover:border-cyan-400/60 focus:outline-none focus:ring-2 focus:ring-cyan-400';
+                button.setAttribute('aria-pressed', String(index === 0));
+                const title = document.createElement('span');
+                title.className = 'block font-semibold text-white';
+                title.textContent = issue.title;
+                const summary = document.createElement('span');
+                summary.className = 'mt-2 block text-xs leading-5 text-slate-400';
+                summary.textContent = issue.summary;
+                button.append(title, summary);
+                button.addEventListener('click', () => {
+                    list.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+                    renderResourceGuide(issue);
+                });
+                list.append(button);
+            });
+            renderResourceGuide(resourceIssues[0]);
+        }
 
         async function apiRequest(path, options = {}) {
             const response = await fetch(path, {
@@ -151,7 +430,11 @@
                 headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
             });
             const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+            if (!response.ok) {
+                const error = new Error(result.error || `Request failed (${response.status}).`);
+                error.status = response.status;
+                throw error;
+            }
             return result;
         }
 
@@ -295,6 +578,8 @@
         async function loadPortal() {
             try {
                 const result = await apiRequest('/api/client/portal');
+                document.getElementById('client-auth-panel').classList.add('hidden');
+                document.getElementById('client-workspace').classList.remove('hidden');
                 document.getElementById('client-identity').textContent = `${result.user.username} · ${result.user.email}`;
                 const profileForm = document.getElementById('profile-form');
                 for (const field of ['company', 'contactName', 'phone', 'timezone']) {
@@ -305,11 +590,112 @@
                 clientTickets = result.tickets;
                 renderTickets();
             } catch (error) {
-                if (error.message.includes('401') || error.message.includes('Client portal access required')) {
-                    window.location.replace('/#portal');
+                if (error.status === 401) {
+                    showClientAuth('Sign in or create a client account to continue.');
+                    return;
+                }
+                if (error.status === 403) {
+                    showClientAuth('This account does not have client portal access. Sign in with a client account.');
                     return;
                 }
                 showError(error);
+            }
+        }
+
+        document.querySelectorAll('[data-client-auth-view]').forEach(button => {
+            button.addEventListener('click', () => showClientAuth('', button.dataset.clientAuthView));
+        });
+
+        document.getElementById('client-login-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            try {
+                await apiRequest('/api/client/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email: fields.get('email').trim(), password: fields.get('password') })
+                });
+                event.currentTarget.reset();
+                await loadPortal();
+            } catch (error) {
+                showClientAuth(error.message);
+            }
+        });
+
+        document.getElementById('client-register-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            try {
+                const result = await apiRequest('/api/client/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ email: fields.get('email').trim(), phone: fields.get('phone').trim(), password: fields.get('password') })
+                });
+                event.currentTarget.reset();
+                setClientAuthView('login');
+                showClientAuth(result.message);
+            } catch (error) {
+                showClientAuth(error.message);
+            }
+        });
+
+        document.getElementById('client-recovery-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const email = new FormData(event.currentTarget).get('email').trim();
+            try {
+                const result = await apiRequest('/api/client/recovery/request', {
+                    method: 'POST',
+                    body: JSON.stringify({ email })
+                });
+                showClientAuth(result.message);
+            } catch (error) {
+                showClientAuth(error.message);
+            }
+        });
+
+        document.getElementById('client-verification-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const email = new FormData(event.currentTarget).get('email').trim();
+            try {
+                const result = await apiRequest('/api/client/verification/resend', {
+                    method: 'POST',
+                    body: JSON.stringify({ email })
+                });
+                showClientAuth(result.message);
+            } catch (error) {
+                showClientAuth(error.message);
+            }
+        });
+
+        document.getElementById('client-reset-form').addEventListener('submit', async event => {
+            event.preventDefault();
+            const fields = new FormData(event.currentTarget);
+            const password = fields.get('password');
+            if (password !== fields.get('confirmPassword')) {
+                showClientAuth('The passwords do not match.');
+                return;
+            }
+            try {
+                const result = await apiRequest('/api/client/recovery/reset', {
+                    method: 'POST',
+                    body: JSON.stringify({ token: recoveryToken, password })
+                });
+                recoveryToken = '';
+                event.currentTarget.reset();
+                setClientAuthView('login');
+                showClientAuth(result.message);
+            } catch (error) {
+                showClientAuth(error.message);
+            }
+        });
+
+        async function verifyClientEmail(token) {
+            try {
+                const result = await apiRequest('/api/client/verify-email', {
+                    method: 'POST',
+                    body: JSON.stringify({ token })
+                });
+                showClientAuth(result.message);
+            } catch (error) {
+                showClientAuth(error.message);
             }
         }
 
@@ -369,16 +755,30 @@
             }
         });
         document.getElementById('refresh-tickets').addEventListener('click', refreshTickets);
+        document.getElementById('resources-tab').addEventListener('click', () => switchHelpTab('resources'));
+        document.getElementById('support-tab').addEventListener('click', () => switchHelpTab('support'));
         document.getElementById('logout-button').addEventListener('click', async () => {
             try {
                 await apiRequest('/api/logout', { method: 'POST' });
-                window.location.replace('/#portal');
+                window.location.replace('/client-portal.html');
             } catch (error) {
                 showError(error);
             }
         });
 
+        const authParams = new URLSearchParams(window.location.search);
+        const authAction = authParams.get('action');
+        const authToken = authParams.get('token');
+        if (authAction === 'reset' && authToken) {
+            recoveryToken = authToken;
+            setClientAuthView('reset');
+        }
+        if ((authAction === 'verify' || authAction === 'reset') && authToken) {
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+        renderResourceIssues();
         loadPortal();
+        if (authAction === 'verify' && authToken) verifyClientEmail(authToken);
     </script>
 </body>
 </html>

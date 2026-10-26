@@ -64,6 +64,58 @@ async function verifyPassword(password, account) {
     return expected.length === actual.length && expected.reduce((difference, byte, index) => difference | (byte ^ actual[index]), 0) === 0;
 }
 
+function getPortalOrigin(env) {
+    try {
+        const configured = new URL(env.PORTAL_BASE_URL);
+        if (configured.protocol !== 'https:' || configured.pathname !== '/' || configured.search || configured.hash) throw new Error();
+        return configured.origin;
+    } catch {
+        throw Object.assign(new Error('Client email links are not configured. Set PORTAL_BASE_URL to the HTTPS portal origin.'), { status: 503 });
+    }
+}
+
+async function sendPortalEmail(env, { to, subject, link, action }) {
+    if (typeof env.RESEND_API_KEY !== 'string' || !env.RESEND_API_KEY || typeof env.RESEND_FROM_EMAIL !== 'string' || !env.RESEND_FROM_EMAIL) {
+        throw Object.assign(new Error('Client email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.'), { status: 503 });
+    }
+    const safeLink = link.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            from: env.RESEND_FROM_EMAIL,
+            to: [to],
+            subject,
+            text: `Use this link to ${action}. It expires soon and can only be used once: ${link}`,
+            html: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`
+        })
+    });
+    if (!response.ok) throw Object.assign(new Error(`Client email delivery failed (${response.status}).`), { status: 502 });
+}
+
+async function createClientActionToken(env, account, purpose, origin, ttlSeconds) {
+    const token = encodeBase64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const tokenHash = encodeBase64(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
+    const expiresAt = Date.now() + ttlSeconds * 1000;
+    await env.AXIUM_KV.put(`client-action:${tokenHash}`, JSON.stringify({ username: account.username, purpose, expiresAt }), { expirationTtl: ttlSeconds });
+    const link = new URL('/client-portal.html', origin);
+    link.searchParams.set('action', purpose === 'verify' ? 'verify' : 'reset');
+    link.searchParams.set('token', token);
+    return { tokenHash, url: link.toString() };
+}
+
+async function consumeClientActionToken(env, token, purpose) {
+    if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{40,60}$/.test(token)) return null;
+    const tokenHash = encodeBase64(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
+    const key = `client-action:${tokenHash}`;
+    const action = await env.AXIUM_KV.get(key, 'json');
+    if (!action || action.purpose !== purpose || action.expiresAt <= Date.now()) return null;
+    const account = await getAccountByUsername(env, action.username);
+    if (!account || account.role !== 'Client') return null;
+    await env.AXIUM_KV.delete(key);
+    return account;
+}
+
 async function getAccessSigningKey(env, keyId) {
     const domain = getAccessDomain(env);
     if (!domain || typeof env.ACCESS_AUD !== 'string' || !env.ACCESS_AUD.trim()) {
@@ -155,7 +207,7 @@ async function createSession(env, account, mode, ttl = SESSION_TTL_SECONDS) {
     const token = encodeBase64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     const tokenHash = encodeBase64(await crypto.subtle.digest('SHA-256', encoder.encode(token)));
     const maxAge = Math.max(1, Math.min(SESSION_TTL_SECONDS, Math.floor(ttl)));
-    await env.AXIUM_KV.put(`session:${tokenHash}`, JSON.stringify({ username: account.username, mode, expiresAt: Date.now() + maxAge * 1000 }), { expirationTtl: maxAge });
+    await env.AXIUM_KV.put(`session:${tokenHash}`, JSON.stringify({ username: account.username, mode, authVersion: account.authVersion || 0, expiresAt: Date.now() + maxAge * 1000 }), { expirationTtl: maxAge });
     return { cookie: makeSessionCookie(token, maxAge), tokenHash };
 }
 
@@ -169,7 +221,7 @@ async function getSession(request, env) {
         return null;
     }
     const account = await getAccountByUsername(env, session.username);
-    if (!account) {
+    if (!account || (session.authVersion || 0) !== (account.authVersion || 0)) {
         await env.AXIUM_KV.delete(`session:${tokenHash}`);
         return null;
     }
@@ -512,6 +564,136 @@ async function requestHandler(request, env) {
 
     if (path === '/api/config' && method === 'GET') {
         return json({ authMode: await getAuthMode(env), ssoConfigured: Boolean(getAccessDomain(env) && env.ACCESS_AUD) });
+    }
+
+    if (path === '/api/client/register' && method === 'POST') {
+        if (await getAuthMode(env) !== 'local') return json({ error: 'Client self-registration is available only while local authentication is active.' }, 409);
+        const origin = getPortalOrigin(env);
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid registration request.' }, 400); }
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+        const password = typeof body.password === 'string' ? body.password : '';
+        if (!EMAIL_PATTERN.test(email) || email.length > 254) return json({ error: 'Enter a valid email address.' }, 400);
+        if (phone.length < 5 || phone.length > 40) return json({ error: 'Enter a phone number between 5 and 40 characters.' }, 400);
+        if (password.length < 12 || password.length > 128) return json({ error: 'Password must be 12 to 128 characters.' }, 400);
+        if (await getAccount(env, email)) return json({ error: 'An account with that email address already exists. Sign in or use account recovery.' }, 409);
+
+        let username;
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+            username = `client-${crypto.randomUUID().slice(0, 8)}`;
+            if (!await env.AXIUM_KV.get(`username:${username}`)) break;
+            username = null;
+        }
+        if (!username) return json({ error: 'Could not allocate an account identifier. Please try again.' }, 503);
+
+        const accountKey = `user:${email}`;
+        let accountSaved = false;
+        let usernameSaved = false;
+        let profileSaved = false;
+        let action;
+        try {
+            const passwordFields = await hashPassword(password);
+            const account = { username, email, name: username, role: 'Client', emailVerified: false, authVersion: 0, ...passwordFields, createdAt: new Date().toISOString() };
+            await env.AXIUM_KV.put(accountKey, JSON.stringify(account));
+            accountSaved = true;
+            await env.AXIUM_KV.put(`username:${username}`, email);
+            usernameSaved = true;
+            await env.AXIUM_KV.put(`client:${username}`, JSON.stringify({ username, email, company: '', contactName: username, phone, timezone: '', history: [] }));
+            profileSaved = true;
+            action = await createClientActionToken(env, account, 'verify', origin, 60 * 60 * 24);
+            await sendPortalEmail(env, { to: email, subject: 'Verify your Axium Cyber client account', link: action.url, action: 'verify your email address' });
+            return json({ message: 'Account created. Check your email for a verification link before signing in.' }, 201);
+        } catch (error) {
+            console.error('Client registration could not be completed:', error.status || 'email or storage error');
+            const cleanup = [];
+            if (accountSaved) cleanup.push(env.AXIUM_KV.delete(accountKey));
+            if (usernameSaved) cleanup.push(env.AXIUM_KV.delete(`username:${username}`));
+            if (profileSaved) cleanup.push(env.AXIUM_KV.delete(`client:${username}`));
+            if (action) cleanup.push(env.AXIUM_KV.delete(`client-action:${action.tokenHash}`));
+            await Promise.allSettled(cleanup);
+            return json({ error: error.status === 503 ? error.message : 'Could not send the verification email. Please try again later.' }, error.status || 502);
+        }
+    }
+
+    if (path === '/api/client/verify-email' && method === 'POST') {
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid verification request.' }, 400); }
+        const account = await consumeClientActionToken(env, body.token, 'verify');
+        if (!account) return json({ error: 'This verification link is invalid, expired, or already used.' }, 400);
+        account.emailVerified = true;
+        account.emailVerifiedAt = new Date().toISOString();
+        await env.AXIUM_KV.put(`user:${account.email}`, JSON.stringify(account));
+        await writeAuditEvent(env, account, 'client.email_verified');
+        return json({ message: 'Email verified. You can now sign in to your client account.' });
+    }
+
+    if (path === '/api/client/verification/resend' && method === 'POST') {
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid verification request.' }, 400); }
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const genericMessage = 'If an unverified client account exists for that email, a verification link will be sent.';
+        if (!EMAIL_PATTERN.test(email) || email.length > 254) return json({ message: genericMessage });
+        const account = await getAccount(env, email);
+        if (!account || account.role !== 'Client' || account.emailVerified !== false) return json({ message: genericMessage });
+        let action;
+        try {
+            action = await createClientActionToken(env, account, 'verify', getPortalOrigin(env), 60 * 60 * 24);
+            await sendPortalEmail(env, { to: email, subject: 'Verify your Axium Cyber client account', link: action.url, action: 'verify your email address' });
+        } catch (error) {
+            if (action) await env.AXIUM_KV.delete(`client-action:${action.tokenHash}`);
+            console.error('Client verification email could not be sent:', error.status || 'email or storage error');
+        }
+        return json({ message: genericMessage });
+    }
+
+    if (path === '/api/client/login' && method === 'POST') {
+        if (await getAuthMode(env) !== 'local') return json({ error: 'SSO is active. Use your organization sign-in.' }, 409);
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid sign-in request.' }, 400); }
+        const identity = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const password = typeof body.password === 'string' ? body.password : '';
+        const account = EMAIL_PATTERN.test(identity) ? await getAccount(env, identity) : await getAccountByUsername(env, identity);
+        if (!account || account.role !== 'Client' || !await verifyPassword(password, account)) return json({ error: 'Invalid email or password.' }, 401);
+        if (account.emailVerified === false) return json({ error: 'Verify your email address using the link we sent before signing in.' }, 403);
+        const session = await createSession(env, account, 'local');
+        return json({ authenticated: true, role: 'Client' }, 200, { 'set-cookie': session.cookie });
+    }
+
+    if (path === '/api/client/recovery/request' && method === 'POST') {
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid recovery request.' }, 400); }
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        const genericMessage = 'If a client account exists for that email, recovery instructions will be sent.';
+        if (!EMAIL_PATTERN.test(email) || email.length > 254) return json({ message: genericMessage });
+        const account = await getAccount(env, email);
+        if (!account || account.role !== 'Client') return json({ message: genericMessage });
+        let action;
+        try {
+            action = await createClientActionToken(env, account, 'reset', getPortalOrigin(env), 30 * 60);
+            await sendPortalEmail(env, { to: email, subject: 'Reset your Axium Cyber client password', link: action.url, action: 'reset your password' });
+        } catch (error) {
+            if (action) await env.AXIUM_KV.delete(`client-action:${action.tokenHash}`);
+            console.error('Client password recovery email could not be sent:', error.status || 'email or storage error');
+        }
+        return json({ message: genericMessage });
+    }
+
+    if (path === '/api/client/recovery/reset' && method === 'POST') {
+        let body;
+        try { body = await readBody(request); } catch { return json({ error: 'Invalid password reset request.' }, 400); }
+        const password = typeof body.password === 'string' ? body.password : '';
+        if (password.length < 12 || password.length > 128) return json({ error: 'Password must be 12 to 128 characters.' }, 400);
+        const account = await consumeClientActionToken(env, body.token, 'reset');
+        if (!account) return json({ error: 'This recovery link is invalid, expired, or already used.' }, 400);
+        const passwordFields = await hashPassword(password);
+        account.passwordHash = passwordFields.passwordHash;
+        account.salt = passwordFields.salt;
+        account.authVersion = (account.authVersion || 0) + 1;
+        account.passwordChangedAt = new Date().toISOString();
+        await env.AXIUM_KV.put(`user:${account.email}`, JSON.stringify(account));
+        await writeAuditEvent(env, account, 'client.password_reset');
+        return json({ message: 'Password updated. You can now sign in with your new password.' });
     }
 
     if (path === '/api/session' && method === 'GET') {

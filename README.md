@@ -78,6 +78,9 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | KV namespace | `AXIUM_KV` | Select the `AXIUM_KV` namespace created in Step 4 |
 | Text variable | `ACCESS_TEAM_DOMAIN` | Optional until SSO is activated; then use your team domain, e.g. `your-team.cloudflareaccess.com` |
 | Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
+| Text variable | `PORTAL_BASE_URL` | Public HTTPS portal origin, e.g. `https://portal.example.com` |
+| Secret | `RESEND_API_KEY` | API key for the Resend account that sends client verification and recovery email |
+| Text variable | `RESEND_FROM_EMAIL` | Verified sender address, e.g. `Axium Cyber <support@example.com>` |
 | Secret | `DISCORD_BOT_TOKEN` | Bot token from the Discord Developer Portal |
 | Text variable | `DISCORD_APPLICATION_ID` | Discord application ID |
 | Text variable | `DISCORD_PUBLIC_KEY` | Discord application public key (hex value) |
@@ -89,6 +92,10 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Text variable | `TELEGRAM_FORUM_CHAT_ID` | Numeric chat ID of the Telegram forum supergroup (often starts with `-100`) |
 
 If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
+
+Client self-registration, email verification, and password recovery require `PORTAL_BASE_URL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`. Verify the sender domain/address in Resend before using it. Set `PORTAL_BASE_URL` to the public site origin only, with HTTPS and no path (for example, `https://portal.example.com`). Clients can open **Client Portal** from the public site, create an account with their email, phone, and password, then verify their email before signing in. Self-registration is available only in local-auth mode; when SSO is active, client identities must be provisioned by an administrator as before.
+
+Verification links expire after 24 hours. Password-recovery links expire after 30 minutes, are single-use, and invalidate existing sessions when the password changes. Recovery requests use a generic response whether or not an eligible account exists.
 
 #### Discord Bot Setup
 
@@ -173,10 +180,12 @@ To turn SSO off, sign in as Super Admin using SSO, choose **Disable SSO**, and c
 | A staff user cannot switch back to local mode | Every account needs a local password. The registry requires one when adding accounts so both modes remain available. |
 | Public page loads but API returns 404 | Confirm the Worker route is `portal.example.com/api/*` and points to the API Worker. |
 | API returns a Pages HTML page instead of JSON | Check that the Worker API route takes precedence for `/api/*`, while Pages serves the rest of the hostname. |
+| Client verification or recovery email is not delivered | Check `PORTAL_BASE_URL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`; verify the sender domain in Resend and review Worker logs for delivery errors. |
 
 ## Data And Security Notes
 
 - Local account passwords are stored as PBKDF2 hashes, never plaintext. The Worker issues HttpOnly, Secure, SameSite cookies backed by mode-tagged KV sessions.
+- Client verification and recovery tokens are stored as SHA-256 digests in KV with expiration; passwords remain PBKDF2-hashed.
 - In SSO mode, Cloudflare Access authenticates the user at the protected callback. The Worker verifies the token signature, issuer, audience, expiry, and email, then creates a portal session from the matching KV account.
 - KV stores users, password hashes, sessions, auth mode, tickets, settings, and account/ticket audit events.
 - Cloudflare Access protects only the SSO callback, not the whole website. Local mode can therefore remain available until the Super Admin activates SSO.
