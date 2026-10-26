@@ -2,7 +2,7 @@
 
 The Axium Cyber public website and staff portal. Local username/password. authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
 
-> This guide uses the Cloudflare dashboard only. No Wrangler, PowerShell, or terminal commands are required.
+> Cloudflare dashboard setup is described here. Deploying the Worker requires Node.js/npm and Wrangler so the Resend SDK can be bundled.
 
 ## How It Fits Together
 
@@ -68,10 +68,10 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 
 ## Step 5: Create And Configure The API Worker
 
-1. Open **Workers & Pages > Create application > Worker** and create a Worker, for example `axium-portal-api`.
-2. Open **Edit code** / **Quick edit**. In this workspace, open `worker.mjs`, copy its complete contents, replace the starter Worker code in the dashboard editor, and choose **Deploy**.
-3. Open the Worker **Settings > Bindings** (sometimes called **Variables and Secrets**).
-4. Add these bindings exactly:
+1. Install Node.js/npm and authenticate Wrangler with your Cloudflare account.
+2. From the project root, run `npm install` and then `npx wrangler deploy`. This bundles the Resend SDK declared in `package.json` with `worker.mjs` and deploys the Worker configuration.
+3. Open the deployed Worker in **Workers & Pages > Settings > Bindings** (sometimes called **Variables and Secrets**).
+4. Add or verify these bindings exactly:
 
 | Type | Variable/binding name | Value |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Secret | `TELEGRAM_WEBHOOK_SECRET` | Long random value using letters, numbers, `_` or `-` |
 | Text variable | `TELEGRAM_FORUM_CHAT_ID` | Numeric chat ID of the Telegram forum supergroup (often starts with `-100`) |
 
-If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
+The KV namespace is declared in `wrangler.jsonc`; make sure its ID points to the namespace you intend to use. Configure secrets such as `RESEND_API_KEY` in the dashboard or with Wrangler secrets; never put them in `vars` or source control. If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
 
 Client self-registration, email verification, and password recovery require `PORTAL_BASE_URL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`. Verify the sender domain/address in Resend before using it. Set `PORTAL_BASE_URL` to the public site origin only, with HTTPS and no path (for example, `https://portal.example.com`). Clients can open **Client Portal** from the public site, create an account with their email, phone, and password, then verify their email before signing in. Self-registration is available only in local-auth mode; when SSO is active, client identities must be provisioned by an administrator as before.
 

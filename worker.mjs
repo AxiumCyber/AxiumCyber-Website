@@ -1,3 +1,5 @@
+import { Resend } from 'resend';
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,24}$/;
 const ROLES = ['OWNER', 'SUPER ADMIN', 'Admin', 'Tech Support', 'Moderator', 'Staff', 'Client'];
@@ -79,18 +81,18 @@ async function sendPortalEmail(env, { to, subject, link, action }) {
         throw Object.assign(new Error('Client email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.'), { status: 503 });
     }
     const safeLink = link.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            from: env.RESEND_FROM_EMAIL,
-            to: [to],
-            subject,
-            text: `Use this link to ${action}. It expires soon and can only be used once: ${link}`,
-            html: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`
-        })
+    const resend = new Resend(env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+        from: env.RESEND_FROM_EMAIL,
+        to,
+        subject,
+        text: `Use this link to ${action}. It expires soon and can only be used once: ${link}`,
+        html: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`
     });
-    if (!response.ok) throw Object.assign(new Error(`Client email delivery failed (${response.status}).`), { status: 502, upstreamStatus: response.status });
+    if (error) {
+        const upstreamStatus = Number.isInteger(error.statusCode) ? error.statusCode : undefined;
+        throw Object.assign(new Error('Client email delivery failed.'), { status: 502, upstreamStatus });
+    }
 }
 
 async function createClientActionToken(env, account, purpose, origin, ttlSeconds) {
