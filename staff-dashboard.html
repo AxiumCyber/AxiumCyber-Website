@@ -26,6 +26,29 @@
         .font-orbitron { font-family: 'Orbitron', sans-serif; }
         .font-mono { font-family: 'Share Tech Mono', monospace; }
         .glass-panel { background: rgba(10, 15, 29, 0.88); border: 1px solid rgba(0, 243, 255, 0.18); }
+        button:not(:disabled) { position: relative; isolation: isolate; }
+        button:not(:disabled)::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            background-image:
+                radial-gradient(circle, rgba(255, 255, 255, 0.9) 0.8px, transparent 1.3px),
+                radial-gradient(circle, rgba(0, 243, 255, 0.9) 0.7px, transparent 1.2px);
+            background-size: 28px 24px, 34px 30px;
+            animation: buttonGlitter 3.8s ease-in-out infinite;
+        }
+        @keyframes buttonGlitter {
+            0%, 15%, 100% { opacity: 0; background-position: 0 0, 12px 8px; }
+            45%, 60% { opacity: 0.2; }
+            80% { opacity: 0.05; background-position: 14px -7px, 2px 13px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            button:not(:disabled)::after { animation: none; opacity: 0.08; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
