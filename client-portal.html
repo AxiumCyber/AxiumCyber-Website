@@ -167,8 +167,19 @@
 
             <section id="resources-panel" role="tabpanel" aria-labelledby="resources-tab" class="space-y-5">
                 <header>
-                    <h2 class="font-orbitron text-lg font-bold text-white">Troubleshooting resources</h2>
-                    <p class="font-mono text-xs text-slate-400 mt-1">Choose the issue you’re seeing for practical checks and safe diagnostic tools.</p>
+                    <h2 class="font-orbitron text-lg font-bold text-white">PC optimization resources</h2>
+                    <p class="font-mono text-xs text-slate-400 mt-1">Choose your operating system for built-in tools, safe maintenance steps, and diagnostic scripts.</p>
+                </header>
+                <section class="space-y-4">
+                    <div class="flex gap-2 border-b border-slate-800" role="tablist" aria-label="Operating system resources">
+                        <button id="windows-resources-tab" type="button" role="tab" aria-selected="true" aria-controls="platform-resource-panel" class="border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200">WINDOWS</button>
+                        <button id="macos-resources-tab" type="button" role="tab" aria-selected="false" aria-controls="platform-resource-panel" class="border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white">macOS</button>
+                    </div>
+                    <div id="platform-resource-panel" role="tabpanel" aria-labelledby="windows-resources-tab" class="panel rounded-lg p-5" aria-live="polite"></div>
+                </section>
+                <header>
+                    <h3 class="font-orbitron text-base font-bold text-white">Issue-specific troubleshooting</h3>
+                    <p class="font-mono text-xs text-slate-400 mt-1">Select the problem you’re experiencing for tailored checks.</p>
                 </header>
                 <div id="resource-guides" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
                 <article id="resource-detail" class="panel rounded-lg p-5 space-y-5" aria-live="polite"></article>
@@ -229,6 +240,77 @@
         let activeTicketId = null;
         let clientAuthView = 'login';
         let recoveryToken = '';
+        const platformResources = {
+            windows: {
+                scripts: [
+                    {
+                        title: 'System health report',
+                        description: 'Read-only PowerShell summary of Windows version, uptime, free system-drive space, and CPU-heavy processes.',
+                        code: [
+                            '$os = Get-CimInstance Win32_OperatingSystem',
+                            '$drive = Get-PSDrive -Name ($env:SystemDrive -replace ":", "")',
+                            '[pscustomobject]@{ Windows = $os.Caption; Version = $os.Version; Uptime = (Get-Date) - $os.LastBootUpTime; SystemDriveFreeGB = [math]::Round($drive.Free / 1GB, 1) } | Format-List',
+                            'Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 ProcessName, CPU'
+                        ].join('\n')
+                    },
+                    {
+                        title: 'Network adapter report',
+                        description: 'Shows adapter state and configured DNS servers without changing network settings.',
+                        code: [
+                            'Get-NetAdapter | Select-Object Name, Status, LinkSpeed',
+                            'Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object ServerAddresses | Select-Object InterfaceAlias, ServerAddresses'
+                        ].join('\n')
+                    }
+                ],
+                tools: [
+                    { title: 'Task Manager', detail: 'Ctrl+Shift+Esc > Processes or Startup apps. Check what uses CPU, memory, and disk; disable only nonessential startup apps.' },
+                    { title: 'Storage Sense', detail: 'Settings > System > Storage. Review cleanup suggestions and files before removing anything.' },
+                    { title: 'Windows Update', detail: 'Settings > Windows Update. Install updates from Microsoft and restart when convenient.' },
+                    { title: 'Reliability Monitor', detail: 'Open Start and search for “View reliability history” to review recent crashes and application failures.' }
+                ],
+                steps: [
+                    'Restart the PC if it has been running for a long time, then check whether the slowdown returns.',
+                    'Review startup apps and disable only software you recognize and do not need at sign-in. Keep security, backup, encryption, and company-management tools enabled.',
+                    'Use Storage Sense or Windows Storage settings to review large files and temporary-file suggestions before deleting them.',
+                    'Install Windows and device-driver updates through Windows Update or the PC manufacturer. Avoid third-party driver-updater utilities.'
+                ]
+            },
+            macos: {
+                scripts: [
+                    {
+                        title: 'System health report',
+                        description: 'Read-only report of macOS version, uptime, free disk space, memory pressure, and top CPU processes.',
+                        code: [
+                            'sw_vers',
+                            'printf "\\nUptime\\n"; uptime',
+                            'printf "\\nRoot volume space\\n"; df -h /',
+                            'printf "\\nMemory pressure\\n"; memory_pressure',
+                            'printf "\\nTop CPU processes\\n"; ps -Ao pid,comm,%cpu,%mem -r | head -n 11'
+                        ].join('\n')
+                    },
+                    {
+                        title: 'Network status report',
+                        description: 'Read-only view of the default network route and a short list of configured DNS servers.',
+                        code: [
+                            'printf "Default route\\n"; route -n get default | grep -E "gateway|interface"',
+                            'printf "\\nDNS servers\\n"; scutil --dns | grep nameserver | head -n 8'
+                        ].join('\n')
+                    }
+                ],
+                tools: [
+                    { title: 'Activity Monitor', detail: 'Applications > Utilities > Activity Monitor. Sort CPU, Memory, or Energy to find apps using unusually high resources.' },
+                    { title: 'Storage settings', detail: 'Apple menu > System Settings > General > Storage. Review recommendations and files before removing them.' },
+                    { title: 'Login Items', detail: 'System Settings > General > Login Items. Remove only apps you recognize and do not need at sign-in.' },
+                    { title: 'Software Update', detail: 'System Settings > General > Software Update. Install updates from Apple and restart when convenient.' }
+                ],
+                steps: [
+                    'Restart the Mac if it has been running for a long time, then check whether the slowdown returns.',
+                    'Use Activity Monitor to identify an app that consistently consumes CPU, memory, or energy. Quit only apps you recognize.',
+                    'Review Storage settings and remove only files you recognize and no longer need. Keep a current backup before major cleanup.',
+                    'Review Login Items and disable only nonessential apps. Keep security, backup, and organization-management tools enabled.'
+                ]
+            }
+        };
         const resourceIssues = [
             {
                 id: 'vault', title: 'Digital Vault access', category: 'Digital Vault', priority: 'Medium',
@@ -314,6 +396,100 @@
                 : 'border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200';
             document.getElementById('resources-panel').classList.toggle('hidden', !resourcesActive);
             document.getElementById('support-panel').classList.toggle('hidden', resourcesActive);
+        }
+
+        function renderPlatformResources(platform) {
+            const resources = platformResources[platform];
+            const panel = document.getElementById('platform-resource-panel');
+            panel.setAttribute('aria-labelledby', `${platform}-resources-tab`);
+            panel.replaceChildren();
+
+            const scriptsTitle = document.createElement('h3');
+            scriptsTitle.className = 'font-orbitron font-semibold text-cyan-200';
+            scriptsTitle.textContent = `${platform === 'windows' ? 'Windows' : 'macOS'} diagnostic scripts`;
+            const safety = document.createElement('p');
+            safety.className = 'mt-1 text-xs text-slate-400';
+            safety.textContent = 'These scripts only read system information. Review before running, do not run as administrator, and redact device or process details before sharing.';
+
+            const scripts = document.createElement('div');
+            scripts.className = 'mt-4 grid gap-3 lg:grid-cols-2';
+            resources.scripts.forEach(script => {
+                const item = document.createElement('article');
+                item.className = 'rounded-lg border border-slate-800 bg-slate-950/70 p-4';
+                const title = document.createElement('h4');
+                title.className = 'text-sm font-semibold text-white';
+                title.textContent = script.title;
+                const description = document.createElement('p');
+                description.className = 'mt-1 text-xs leading-5 text-slate-400';
+                description.textContent = script.description;
+                const code = document.createElement('pre');
+                code.className = 'mt-3 overflow-x-auto rounded bg-slate-950 p-3 font-mono text-xs leading-5 text-emerald-300';
+                code.textContent = script.code;
+                const copy = document.createElement('button');
+                copy.type = 'button';
+                copy.className = 'mt-2 text-xs text-cyan-300 hover:text-white';
+                copy.innerHTML = '<i class="fa-regular fa-copy mr-1" aria-hidden="true"></i>Copy script';
+                copy.addEventListener('click', async () => {
+                    try {
+                        await navigator.clipboard.writeText(script.code);
+                        copy.lastChild.textContent = 'Copied';
+                    } catch {
+                        copy.lastChild.textContent = 'Clipboard unavailable';
+                    }
+                });
+                item.append(title, description, code, copy);
+                scripts.append(item);
+            });
+
+            const guidance = document.createElement('div');
+            guidance.className = 'mt-5 grid gap-5 lg:grid-cols-2';
+            const checklist = document.createElement('section');
+            const checklistTitle = document.createElement('h4');
+            checklistTitle.className = 'font-mono text-xs uppercase tracking-wider text-slate-400';
+            checklistTitle.textContent = 'Safe optimization checklist';
+            const steps = document.createElement('ol');
+            steps.className = 'mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-200 marker:text-cyan-400';
+            resources.steps.forEach(step => {
+                const item = document.createElement('li');
+                item.textContent = step;
+                steps.append(item);
+            });
+            checklist.append(checklistTitle, steps);
+
+            const tools = document.createElement('section');
+            const toolsTitle = document.createElement('h4');
+            toolsTitle.className = 'font-mono text-xs uppercase tracking-wider text-slate-400';
+            toolsTitle.textContent = 'Built-in tools';
+            tools.append(toolsTitle);
+            resources.tools.forEach(tool => {
+                const item = document.createElement('div');
+                item.className = 'mt-3 border-l-2 border-cyan-500/50 pl-3';
+                const title = document.createElement('h5');
+                title.className = 'text-sm font-semibold text-slate-200';
+                title.textContent = tool.title;
+                const detail = document.createElement('p');
+                detail.className = 'mt-1 text-xs leading-5 text-slate-400';
+                detail.textContent = tool.detail;
+                item.append(title, detail);
+                tools.append(item);
+            });
+            guidance.append(checklist, tools);
+            panel.append(scriptsTitle, safety, scripts, guidance);
+        }
+
+        function switchPlatformResources(platform) {
+            const windowsActive = platform === 'windows';
+            const windowsTab = document.getElementById('windows-resources-tab');
+            const macosTab = document.getElementById('macos-resources-tab');
+            windowsTab.setAttribute('aria-selected', String(windowsActive));
+            macosTab.setAttribute('aria-selected', String(!windowsActive));
+            windowsTab.className = windowsActive
+                ? 'border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200'
+                : 'border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white';
+            macosTab.className = windowsActive
+                ? 'border-b-2 border-transparent px-4 py-3 font-orbitron text-xs font-bold text-slate-400 hover:text-white'
+                : 'border-b-2 border-cyan-400 px-4 py-3 font-orbitron text-xs font-bold text-cyan-200';
+            renderPlatformResources(platform);
         }
 
         function renderResourceGuide(issue) {
@@ -757,6 +933,8 @@
         document.getElementById('refresh-tickets').addEventListener('click', refreshTickets);
         document.getElementById('resources-tab').addEventListener('click', () => switchHelpTab('resources'));
         document.getElementById('support-tab').addEventListener('click', () => switchHelpTab('support'));
+        document.getElementById('windows-resources-tab').addEventListener('click', () => switchPlatformResources('windows'));
+        document.getElementById('macos-resources-tab').addEventListener('click', () => switchPlatformResources('macos'));
         document.getElementById('logout-button').addEventListener('click', async () => {
             try {
                 await apiRequest('/api/logout', { method: 'POST' });
@@ -776,6 +954,7 @@
         if ((authAction === 'verify' || authAction === 'reset') && authToken) {
             window.history.replaceState(null, '', window.location.pathname);
         }
+        renderPlatformResources('windows');
         renderResourceIssues();
         loadPortal();
         if (authAction === 'verify' && authToken) verifyClientEmail(authToken);
