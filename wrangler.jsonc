@@ -11,7 +11,8 @@
   ],
   "vars": {
     "ACCESS_TEAM_DOMAIN": "REPLACE_WITH_TEAM.cloudflareaccess.com",
-    "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD"
+    "ACCESS_AUD": "REPLACE_WITH_ACCESS_APPLICATION_AUD",
+    "RESEND_FROM_EMAIL": "7296e051@taleurikul.resend.app"
   },
   "previews": {
     "vars": {
