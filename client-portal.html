@@ -53,12 +53,6 @@
                 <p class="font-mono text-xs tracking-widest text-cyan-400">CLIENT ACCOUNT ACCESS</p>
                 <h2 id="client-auth-title" class="font-orbitron text-lg font-bold text-white">Sign in</h2>
             </header>
-            <nav class="flex flex-wrap gap-2 border-b border-slate-800 pb-3" aria-label="Client account actions">
-                <button type="button" data-client-auth-view="login" class="rounded border border-cyan-500/40 px-3 py-2 text-xs text-cyan-200">SIGN IN</button>
-                <button type="button" data-client-auth-view="register" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">CREATE ACCOUNT</button>
-                <button type="button" data-client-auth-view="recover" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RECOVER ACCOUNT</button>
-                <button type="button" data-client-auth-view="verification" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RESEND VERIFICATION</button>
-            </nav>
             <p id="client-auth-message" class="hidden rounded border border-cyan-500/30 bg-cyan-950/30 p-3 text-sm text-cyan-100" role="status" aria-live="polite"></p>
 
             <form id="client-login-form" class="space-y-3">
@@ -70,6 +64,12 @@
                 </label>
                 <button class="w-full rounded-lg bg-cyan-400 px-4 py-3 text-xs font-orbitron font-bold text-slate-950 hover:bg-cyan-300">SIGN IN</button>
             </form>
+            <nav class="flex flex-wrap gap-2 border-b border-slate-800 pb-3" aria-label="Client account actions">
+                <button type="button" data-client-auth-view="login" class="rounded border border-cyan-500/40 px-3 py-2 text-xs text-cyan-200">SIGN IN</button>
+                <button type="button" data-client-auth-view="register" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">CREATE ACCOUNT</button>
+                <button type="button" data-client-auth-view="recover" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RECOVER ACCOUNT</button>
+                <button type="button" data-client-auth-view="verification" class="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300">RESEND VERIFICATION</button>
+            </nav>
 
             <form id="client-register-form" class="hidden space-y-3">
                 <label class="block text-xs font-mono text-slate-300">EMAIL ADDRESS
