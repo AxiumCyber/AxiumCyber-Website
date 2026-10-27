@@ -1,6 +1,6 @@
 {
   "private": true,
   "dependencies": {
-    "resend": "^6.34.1"
+    "@aws-sdk/client-sesv2": "^3.1157.0"
   }
 }

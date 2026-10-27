@@ -2,7 +2,7 @@
 
 The Axium Cyber public website and staff portal. Local username/password. authentication is active by default. A Super Admin can switch the portal to Cloudflare Access SSO; a second switch returns it to local authentication. KV stores accounts, auth mode, sessions, tickets, settings, and audit events.
 
-> Cloudflare dashboard setup is described here. Deploying the Worker requires Node.js/npm and Wrangler so the Resend SDK can be bundled.
+> Cloudflare dashboard setup is described here. Deploying the Worker requires Node.js/npm and Wrangler so the AWS SDK can be bundled.
 
 ## How It Fits Together
 
@@ -69,7 +69,7 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 ## Step 5: Create And Configure The API Worker
 
 1. Install Node.js/npm and authenticate Wrangler with your Cloudflare account.
-2. From the project root, run `npm install` and then `npx wrangler deploy`. This bundles the Resend SDK declared in `package.json` with `worker.mjs` and deploys the Worker configuration.
+2. From the project root, run `npm install` and then `npx wrangler deploy`. This bundles the AWS SES SDK declared in `package.json` with `worker.mjs` and deploys the Worker configuration.
 3. Open the deployed Worker in **Workers & Pages > Settings > Bindings** (sometimes called **Variables and Secrets**).
 4. Add or verify these bindings exactly:
 
@@ -79,8 +79,11 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Text variable | `ACCESS_TEAM_DOMAIN` | Optional until SSO is activated; then use your team domain, e.g. `your-team.cloudflareaccess.com` |
 | Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
 | Text variable | `PORTAL_BASE_URL` | Public HTTPS portal origin, e.g. `https://portal.example.com` |
-| Secret | `RESEND_API_KEY` | API key for the Resend account that sends client verification and recovery email |
-| Text variable | `RESEND_FROM_EMAIL` | Verified sender address, e.g. `Axium Cyber <support@example.com>` |
+| Text variable | `SES_REGION` | AWS region where the SES sending identity is verified, e.g. `us-west-2` |
+| Text variable | `SES_FROM_EMAIL` | Verified SES sender identity, e.g. `Axium Cyber <support@example.com>` |
+| Secret | `AWS_ACCESS_KEY_ID` | Access key for a dedicated IAM principal restricted to sending with SES |
+| Secret | `AWS_SECRET_ACCESS_KEY` | Secret key for that IAM principal |
+| Secret | `AWS_SESSION_TOKEN` | Optional session token when using temporary AWS credentials |
 | Secret | `DISCORD_BOT_TOKEN` | Bot token from the Discord Developer Portal |
 | Text variable | `DISCORD_APPLICATION_ID` | Discord application ID |
 | Text variable | `DISCORD_PUBLIC_KEY` | Discord application public key (hex value) |
@@ -91,9 +94,9 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Secret | `TELEGRAM_WEBHOOK_SECRET` | Long random value using letters, numbers, `_` or `-` |
 | Text variable | `TELEGRAM_FORUM_CHAT_ID` | Numeric chat ID of the Telegram forum supergroup (often starts with `-100`) |
 
-The KV namespace is declared in `wrangler.jsonc`; make sure its ID points to the namespace you intend to use. Configure secrets such as `RESEND_API_KEY` in the dashboard or with Wrangler secrets; never put them in `vars` or source control. If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
+The KV namespace is declared in `wrangler.jsonc`; make sure its ID points to the namespace you intend to use. Replace the SES placeholders with your AWS region and a sender identity verified in SES. In the AWS account, keep SES out of sandbox for general recipient delivery, and give the IAM principal only `ses:SendEmail` access to the verified identity. Configure AWS keys as Worker secrets in the dashboard or with Wrangler secrets; never put them in `vars` or source control. If you configure the optional SSO variables now, do not include `https://` or a trailing slash in `ACCESS_TEAM_DOMAIN`; `ACCESS_AUD` must match exactly. You can add these later before SSO is enabled. Save the bindings and redeploy the Worker when prompted.
 
-Client self-registration, email verification, and password recovery require `PORTAL_BASE_URL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`. Verify the sender domain/address in Resend before using it. Set `PORTAL_BASE_URL` to the public site origin only, with HTTPS and no path (for example, `https://portal.example.com`). Clients can open **Client Portal** from the public site, create an account with their email, phone, and password, then verify their email before signing in. Self-registration is available only in local-auth mode; when SSO is active, client identities must be provisioned by an administrator as before.
+Client self-registration, email verification, and password recovery require `PORTAL_BASE_URL`, `SES_REGION`, `SES_FROM_EMAIL`, `AWS_ACCESS_KEY_ID`, and `AWS_SECRET_ACCESS_KEY`. Verify the sender identity in SES before using it. Set `PORTAL_BASE_URL` to the public site origin only, with HTTPS and no path (for example, `https://portal.example.com`). Clients can open **Client Portal** from the public site, create an account with their email, phone, and password, then verify their email before signing in. Self-registration is available only in local-auth mode; when SSO is active, client identities must be provisioned by an administrator as before.
 
 Verification links expire after 24 hours. Password-recovery links expire after 30 minutes, are single-use, and invalidate existing sessions when the password changes. Recovery requests use a generic response whether or not an eligible account exists.
 
@@ -180,7 +183,7 @@ To turn SSO off, sign in as Super Admin using SSO, choose **Disable SSO**, and c
 | A staff user cannot switch back to local mode | Every account needs a local password. The registry requires one when adding accounts so both modes remain available. |
 | Public page loads but API returns 404 | Confirm the Worker route is `portal.example.com/api/*` and points to the API Worker. |
 | API returns a Pages HTML page instead of JSON | Check that the Worker API route takes precedence for `/api/*`, while Pages serves the rest of the hostname. |
-| Client verification or recovery email is not delivered | Check `PORTAL_BASE_URL`, `RESEND_API_KEY`, and `RESEND_FROM_EMAIL`; verify the sender domain in Resend and review Worker logs for delivery errors. |
+| Client verification or recovery email is not delivered | Check `PORTAL_BASE_URL`, `SES_REGION`, `SES_FROM_EMAIL`, and the AWS credential secrets; verify the sender identity and SES account status in AWS, then review Worker logs for the SES HTTP status. |
 
 ## Data And Security Notes
 

@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,24}$/;
@@ -77,20 +77,37 @@ function getPortalOrigin(env) {
 }
 
 async function sendPortalEmail(env, { to, subject, link, action }) {
-    if (typeof env.RESEND_API_KEY !== 'string' || !env.RESEND_API_KEY || typeof env.RESEND_FROM_EMAIL !== 'string' || !env.RESEND_FROM_EMAIL) {
-        throw Object.assign(new Error('Client email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.'), { status: 503 });
+    if (typeof env.SES_REGION !== 'string' || !env.SES_REGION ||
+        typeof env.AWS_ACCESS_KEY_ID !== 'string' || !env.AWS_ACCESS_KEY_ID ||
+        typeof env.AWS_SECRET_ACCESS_KEY !== 'string' || !env.AWS_SECRET_ACCESS_KEY ||
+        typeof env.SES_FROM_EMAIL !== 'string' || !env.SES_FROM_EMAIL) {
+        throw Object.assign(new Error('Client email delivery is not configured. Set SES_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and SES_FROM_EMAIL.'), { status: 503 });
     }
     const safeLink = link.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const resend = new Resend(env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
-        from: env.RESEND_FROM_EMAIL,
-        to,
-        subject,
-        text: `Use this link to ${action}. It expires soon and can only be used once: ${link}`,
-        html: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`
+    const ses = new SESv2Client({
+        region: env.SES_REGION,
+        credentials: {
+            accessKeyId: env.AWS_ACCESS_KEY_ID,
+            secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+            ...(env.AWS_SESSION_TOKEN ? { sessionToken: env.AWS_SESSION_TOKEN } : {})
+        }
     });
-    if (error) {
-        const upstreamStatus = Number.isInteger(error.statusCode) ? error.statusCode : undefined;
+    try {
+        await ses.send(new SendEmailCommand({
+            FromEmailAddress: env.SES_FROM_EMAIL,
+            Destination: { ToAddresses: [to] },
+            Content: {
+                Simple: {
+                    Subject: { Data: subject, Charset: 'UTF-8' },
+                    Body: {
+                        Text: { Data: `Use this link to ${action}. It expires soon and can only be used once: ${link}`, Charset: 'UTF-8' },
+                        Html: { Data: `<p>Use the link below to ${action}.</p><p><a href="${safeLink}">${action}</a></p><p>This link expires soon and can only be used once. If you did not request this, you can ignore this email.</p>`, Charset: 'UTF-8' }
+                    }
+                }
+            }
+        }));
+    } catch (error) {
+        const upstreamStatus = Number.isInteger(error?.$metadata?.httpStatusCode) ? error.$metadata.httpStatusCode : undefined;
         throw Object.assign(new Error('Client email delivery failed.'), { status: 502, upstreamStatus });
     }
 }
@@ -607,7 +624,7 @@ async function requestHandler(request, env) {
             await sendPortalEmail(env, { to: email, subject: 'Verify your Axium Cyber client account', link: action.url, action: 'verify your email address' });
             return json({ message: 'Account created. Check your email for a verification link before signing in.' }, 201);
         } catch (error) {
-            console.error('Client registration could not be completed:', error.upstreamStatus ? `Resend HTTP ${error.upstreamStatus}` : error.status || 'email or storage error');
+            console.error('Client registration could not be completed:', error.upstreamStatus ? `AWS SES HTTP ${error.upstreamStatus}` : error.status || 'email or storage error');
             const cleanup = [];
             if (accountSaved) cleanup.push(env.AXIUM_KV.delete(accountKey));
             if (usernameSaved) cleanup.push(env.AXIUM_KV.delete(`username:${username}`));
