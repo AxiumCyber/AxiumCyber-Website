@@ -80,7 +80,7 @@ You do not need to copy a namespace ID into a project file when using the dashbo
 | Text variable | `ACCESS_AUD` | Optional until SSO is activated; then use the exact Audience Tag from Step 3 |
 | Text variable | `PORTAL_BASE_URL` | Public HTTPS portal origin, e.g. `https://portal.example.com` |
 | Text variable | `SES_REGION` | AWS region where the SES sending identity is verified, e.g. `us-west-2` |
-| Text variable | `SES_FROM_EMAIL` | Verified SES sender identity, e.g. `Axium Cyber <support@example.com>` |
+| Text variable | `SES_FROM_EMAIL` | Verified SES sender identity, e.g. `noreply@www.axiumcyber.com` |
 | Secret | `AWS_ACCESS_KEY_ID` | Access key for a dedicated IAM principal restricted to sending with SES |
 | Secret | `AWS_SECRET_ACCESS_KEY` | Secret key for that IAM principal |
 | Secret | `AWS_SESSION_TOKEN` | Optional session token when using temporary AWS credentials |

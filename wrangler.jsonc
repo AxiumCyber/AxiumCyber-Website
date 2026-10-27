@@ -19,7 +19,7 @@
     "DISCORD_SUPPORT_ROLE_ID": "1564163757725192252",
     "PORTAL_BASE_URL": "https://axiumcyber.com",
     "SES_REGION": "REPLACE_WITH_SES_REGION",
-    "SES_FROM_EMAIL": "REPLACE_WITH_VERIFIED_SES_SENDER"
+    "SES_FROM_EMAIL": "noreply@www.axiumcyber.com"
   },
   "previews": {
     "vars": {
